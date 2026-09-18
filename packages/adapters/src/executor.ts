@@ -4427,7 +4427,9 @@ export function runPromotesMidTurnNarration(trigger: string): boolean {
 }
 
 export function runReplyGuidance(trigger: string): string {
-  return runAllowsSilentEmpty(trigger) ? ROUTINE_SILENT_REPLY_GUIDANCE : LONG_WORK_PROGRESS_GUIDANCE;
+  return runAllowsSilentEmpty(trigger)
+    ? ROUTINE_SILENT_REPLY_GUIDANCE
+    : LONG_WORK_PROGRESS_GUIDANCE;
 }
 
 export function completionMessageSegments(

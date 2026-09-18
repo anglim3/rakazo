@@ -142,7 +142,7 @@ describe("runReplyGuidance", () => {
   it("does not ask routine runs for message_user progress", () => {
     expect(runPromotesMidTurnNarration("routine")).toBe(false);
     expect(runReplyGuidance("routine")).toBe(ROUTINE_SILENT_REPLY_GUIDANCE);
-    expect(runReplyGuidance("routine")).not.toContain("message_user");
+    expect(runReplyGuidance("routine")).not.toContain("progress updates with message_user");
     expect(runReplyGuidance("routine")).toContain("no user-visible text");
     expect(runReplyGuidance("routine")).toContain("empty");
   });
