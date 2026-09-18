@@ -53,6 +53,7 @@ import {
   type PiSessionHandle,
   type PiSessionRecorder,
 } from "./pi-session.js";
+import { NO_RESPONSE } from "./silent-reply.js";
 import { textContentArg } from "./tool-text.js";
 
 const running = new Map<string, { controller: AbortController; work: Promise<void> }>();
@@ -79,8 +80,7 @@ const MAX_PARALLEL_SUBAGENTS = 4;
 const MAX_SILENT_TOOL_CONTINUATIONS = 3;
 const SILENT_TOOL_CONTINUATION_PROMPT =
   "Continue the original task from the latest tool result. Do not stop after a tool call; use any remaining tools needed, then give the user the final answer.";
-const SILENT_ALLOWED_TOOL_CONTINUATION_PROMPT =
-  "Continue the original task from the latest tool result. If the original task says to stay silent when there is nothing to report, produce no user-visible text. Otherwise use any remaining tools needed, then give the user the final answer.";
+const SILENT_ALLOWED_TOOL_CONTINUATION_PROMPT = `Continue the original task from the latest tool result. If the original task says to stay silent when there is nothing to report, the entire final assistant reply must be exactly ${NO_RESPONSE}. Otherwise use any remaining tools needed, then give the user the final answer.`;
 const TOOL_FINAL_RESPONSE_FALLBACK =
   "I completed the tool step but could not produce a final response. Please ask me to continue.";
 const DEFAULT_COMPUTER_SCREENSHOTS_TO_KEEP = 2;

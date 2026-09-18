@@ -4,10 +4,12 @@ import {
   completionMessageSegments,
   completionNotificationBody,
   LONG_WORK_PROGRESS_GUIDANCE,
+  NO_RESPONSE,
   ROUTINE_SILENT_REPLY_GUIDANCE,
   runAllowsSilentEmpty,
   runPromotesMidTurnNarration,
   runReplyGuidance,
+  stripNoResponseReply,
   subagentMarksUnread,
 } from "./executor.js";
 import { finalBlocksAfterMidTurnProgress } from "./user-progress.js";
@@ -127,7 +129,7 @@ describe("completionMarksUnread", () => {
   });
 
   it("drops a tool-only routine final so an empty watch leaves no chat bubble", () => {
-    const steps = [{ kind: "steps" as const, steps: [{ label: "List mail", count: 1 }] }];
+    const steps = [{ kind: "steps" as const, steps: [{ label: "List items", count: 1 }] }];
     const segments = completionMessageSegments(steps, {
       allowSilentEmpty: runAllowsSilentEmpty("routine"),
     });
@@ -138,13 +140,56 @@ describe("completionMarksUnread", () => {
   });
 });
 
+describe("stripNoResponseReply", () => {
+  it("leaves an already-empty reply empty", () => {
+    expect(stripNoResponseReply("", [])).toEqual({ assembled: "", blocks: [] });
+  });
+
+  it("treats an exact sentinel final as empty", () => {
+    const stripped = stripNoResponseReply(NO_RESPONSE, [{ kind: "text", text: NO_RESPONSE }]);
+    expect(stripped).toEqual({ assembled: "", blocks: [] });
+    const text = completionNotificationBody(stripped.assembled, stripped.blocks);
+    expect(text).toBe("");
+    expect(completionMarksUnread("routine", text)).toBe(false);
+  });
+
+  it("treats a trimmed sentinel as empty", () => {
+    const padded = `  ${NO_RESPONSE}  `;
+    const stripped = stripNoResponseReply(padded, [{ kind: "text", text: padded }]);
+    expect(stripped).toEqual({ assembled: "", blocks: [] });
+  });
+
+  it("does not strip the sentinel when extra prose is present", () => {
+    const text = `${NO_RESPONSE} all clear`;
+    const blocks = [{ kind: "text" as const, text }];
+    expect(stripNoResponseReply(text, blocks)).toEqual({ assembled: text, blocks });
+    expect(completionMarksUnread("routine", text)).toBe(true);
+  });
+
+  it("strips a sentinel text block beside tool activity so the hollow final can drop", () => {
+    const steps = { kind: "steps" as const, steps: [{ label: "List items", count: 1 }] };
+    const stripped = stripNoResponseReply(NO_RESPONSE, [
+      steps,
+      { kind: "text", text: NO_RESPONSE },
+    ]);
+    expect(stripped).toEqual({ assembled: "", blocks: [steps] });
+    const blocks = finalBlocksAfterMidTurnProgress(
+      stripped.blocks,
+      runAllowsSilentEmpty("routine"),
+    );
+    expect(blocks).toEqual([]);
+    expect(completionMarksUnread("routine", completionNotificationBody("", blocks))).toBe(false);
+  });
+});
+
 describe("runReplyGuidance", () => {
   it("does not ask routine runs for message_user progress", () => {
     expect(runPromotesMidTurnNarration("routine")).toBe(false);
     expect(runReplyGuidance("routine")).toBe(ROUTINE_SILENT_REPLY_GUIDANCE);
     expect(runReplyGuidance("routine")).not.toContain("progress updates with message_user");
-    expect(runReplyGuidance("routine")).toContain("no user-visible text");
-    expect(runReplyGuidance("routine")).toContain("empty");
+    expect(runReplyGuidance("routine")).toContain(NO_RESPONSE);
+    expect(runReplyGuidance("routine")).toContain(`exactly ${NO_RESPONSE}`);
+    expect(runReplyGuidance("routine")).not.toContain("Leave the final reply empty");
   });
 
   it("keeps progress guidance for user-triggered runs", () => {

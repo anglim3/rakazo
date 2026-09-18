@@ -256,6 +256,7 @@ vi.mock("./pi-openai-compatible-provider.js", () => ({
 
 import { maxToolCallsPerTurn, PiAgentRuntime } from "./pi-runtime.js";
 import { TOOL_RESULT_TEXT_LIMIT } from "./pi-runtime-limits.js";
+import { NO_RESPONSE } from "./silent-reply.js";
 
 const destinationTool: ConnectorTool = {
   name: "destination.write",
@@ -769,7 +770,7 @@ describe("Pi connector tool dispatch", () => {
     expect(fakeAgentState.followUpMessages[0]).toEqual(
       expect.objectContaining({
         role: "user",
-        content: expect.stringContaining("stay silent"),
+        content: expect.stringContaining(NO_RESPONSE),
       }),
     );
     expect(events).not.toContainEqual({

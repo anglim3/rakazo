@@ -280,6 +280,7 @@ import {
 } from "./scratchpad-tools.js";
 import { inferScript } from "./scripted-runtime.js";
 import type { EncryptedSecretStore } from "./secrets.js";
+import { isExactNoResponse, NO_RESPONSE, stripNoResponseReply } from "./silent-reply.js";
 import {
   listAgentSkillRecords,
   skillCreateFromTool,
@@ -4067,12 +4068,17 @@ export function createRunExecutor(deps: ExecutorDeps) {
           terminalCheckpointComplete = true;
 
           flushPendingTools();
-          if (!assembled) {
+          const silentReply = runAllowsSilentEmpty(run.trigger)
+            ? stripNoResponseReply(assembled, messageSegments)
+            : { assembled, blocks: messageSegments };
+          let completionBlocks = silentReply.blocks;
+          if (!silentReply.assembled) {
             // Mid-turn progress already posted durable chat messages; skip the empty
             // "…" fallback so we do not add a junk final bubble. Delegated bot_message
             // runs still return via botMessageOutcomeFromMidTurn below (status when
-            // only progress was posted, result when a final reply exists).
-            messageSegments = completionMessageSegments(messageSegments, {
+            // only progress was posted, result when a final reply exists). Exact
+            // NO_RESPONSE finals are treated as empty before this fallback runs.
+            completionBlocks = completionMessageSegments(completionBlocks, {
               allowSilentEmpty: allowSilentEmptyRun || publishedMidTurnUserMessage,
               emptyResponseText,
               suppressOutput: handedOff,
@@ -4082,12 +4088,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
           const blocks = handedOff
             ? []
             : finalBlocksAfterMidTurnProgress(
-                redactBlocks(messageSegments, runSecrets),
+                redactBlocks(completionBlocks, runSecrets),
                 publishedMidTurnUserMessage || runAllowsSilentEmpty(run.trigger),
               );
           const text = handedOff
             ? ""
-            : redactSecrets(completionNotificationBody(assembled, blocks), runSecrets);
+            : redactSecrets(completionNotificationBody(silentReply.assembled, blocks), runSecrets);
           if (containsSecret(text, runSecrets)) {
             throw new Error("refusing to persist a secret in the thread");
           }
@@ -4412,11 +4418,12 @@ export function threadContextForRun<T>(
       : { ...context, includeSemanticRecall: true };
 }
 
+export { isExactNoResponse, NO_RESPONSE, stripNoResponseReply };
+
 export const LONG_WORK_PROGRESS_GUIDANCE =
   "During long work, send a few short progress updates with message_user so the user can see what you are doing. Keep them brief and high-signal (a sentence or two, not a dump). Do not narrate every tool call. Thinking stays private. message_user is capped at 500 characters and will be silently cut off if you exceed it \u2014 never put your final answer, a report, or any long-form deliverable in it. Always put the complete final answer in your normal reply, never split across message_user calls, and never assume a message_user update already delivered your content.";
 
-export const ROUTINE_SILENT_REPLY_GUIDANCE =
-  "If this routine's prompt says to stay silent when there is nothing to report, produce no user-visible text at all: no progress updates, no all-clear, and no meta note that you are staying silent. Leave the final reply empty. Do not call message_user unless you have something to report.";
+export const ROUTINE_SILENT_REPLY_GUIDANCE = `If this routine's prompt says to stay silent when there is nothing to report, the entire final assistant reply must be exactly ${NO_RESPONSE} — no surrounding prose, no variants, no progress updates, no all-clear, and no meta note that you are staying silent. Do not call message_user unless you have something to report.`;
 
 export function runAllowsSilentEmpty(trigger: string): boolean {
   return trigger === "routine";
