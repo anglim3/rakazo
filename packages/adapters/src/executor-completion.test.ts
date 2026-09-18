@@ -166,6 +166,14 @@ describe("stripNoResponseReply", () => {
     expect(completionMarksUnread("routine", text)).toBe(true);
   });
 
+  it("does not strip when assembled is the sentinel but a text block has extra prose", () => {
+    const blocks = [{ kind: "text" as const, text: `${NO_RESPONSE} all clear` }];
+    expect(stripNoResponseReply(NO_RESPONSE, blocks)).toEqual({
+      assembled: NO_RESPONSE,
+      blocks,
+    });
+  });
+
   it("strips a sentinel text block beside tool activity so the hollow final can drop", () => {
     const steps = { kind: "steps" as const, steps: [{ label: "List items", count: 1 }] };
     const stripped = stripNoResponseReply(NO_RESPONSE, [

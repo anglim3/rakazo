@@ -32,8 +32,14 @@ export function stripNoResponseReply(
   assembled: string,
   blocks: MessageBlock[],
 ): { assembled: string; blocks: MessageBlock[] } {
-  const visible = (assembled || joinedText(blocks)).trim();
-  if (visible !== NO_RESPONSE) return { assembled, blocks };
+  const assembledTrimmed = assembled.trim();
+  const blockText = joinedText(blocks).trim();
+  const visible = assembledTrimmed || blockText;
+  if (!isExactNoResponse(visible)) return { assembled, blocks };
+  // Fail closed: extra prose in either the assembled final or a text block keeps the reply.
+  if (assembledTrimmed && blockText && !isExactNoResponse(blockText)) {
+    return { assembled, blocks };
+  }
   return {
     assembled: "",
     blocks: blocks.filter((block) => block.kind !== "text"),
