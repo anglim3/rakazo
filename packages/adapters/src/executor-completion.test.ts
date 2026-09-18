@@ -3,8 +3,14 @@ import {
   completionMarksUnread,
   completionMessageSegments,
   completionNotificationBody,
+  LONG_WORK_PROGRESS_GUIDANCE,
+  ROUTINE_SILENT_REPLY_GUIDANCE,
+  runAllowsSilentEmpty,
+  runPromotesMidTurnNarration,
+  runReplyGuidance,
   subagentMarksUnread,
 } from "./executor.js";
+import { finalBlocksAfterMidTurnProgress } from "./user-progress.js";
 
 describe("completionMessageSegments", () => {
   it("keeps visible tool activity without appending a generic completion claim", () => {
@@ -96,6 +102,56 @@ describe("completionMarksUnread", () => {
     expect(text).toBe("");
     expect(completionMarksUnread("routine", text)).toBe(false);
     expect(completionMarksUnread("user", text)).toBe(true);
+  });
+
+  it("lets a silent routine finish with no chat text, unread, or notify", () => {
+    expect(runAllowsSilentEmpty("routine")).toBe(true);
+    expect(runAllowsSilentEmpty("user")).toBe(false);
+    const segments = completionMessageSegments([], {
+      allowSilentEmpty: runAllowsSilentEmpty("routine"),
+    });
+    const text = completionNotificationBody("", segments);
+    expect(segments).toEqual([]);
+    expect(text).toBe("");
+    expect(completionMarksUnread("routine", text)).toBe(false);
+  });
+
+  it("still invents done. for a user-triggered empty run", () => {
+    expect(runAllowsSilentEmpty("user")).toBe(false);
+    const segments = completionMessageSegments([], {
+      allowSilentEmpty: runAllowsSilentEmpty("user"),
+    });
+    const text = completionNotificationBody("", segments);
+    expect(segments).toEqual([{ kind: "text", text: "done." }]);
+    expect(completionMarksUnread("user", text)).toBe(true);
+  });
+
+  it("drops a tool-only routine final so an empty watch leaves no chat bubble", () => {
+    const steps = [{ kind: "steps" as const, steps: [{ label: "List mail", count: 1 }] }];
+    const segments = completionMessageSegments(steps, {
+      allowSilentEmpty: runAllowsSilentEmpty("routine"),
+    });
+    const blocks = finalBlocksAfterMidTurnProgress(segments, runAllowsSilentEmpty("routine"));
+    expect(segments).toEqual(steps);
+    expect(blocks).toEqual([]);
+    expect(completionMarksUnread("routine", completionNotificationBody("", blocks))).toBe(false);
+  });
+});
+
+describe("runReplyGuidance", () => {
+  it("does not ask routine runs for message_user progress", () => {
+    expect(runPromotesMidTurnNarration("routine")).toBe(false);
+    expect(runReplyGuidance("routine")).toBe(ROUTINE_SILENT_REPLY_GUIDANCE);
+    expect(runReplyGuidance("routine")).not.toContain("message_user");
+    expect(runReplyGuidance("routine")).toContain("no user-visible text");
+    expect(runReplyGuidance("routine")).toContain("empty");
+  });
+
+  it("keeps progress guidance for user-triggered runs", () => {
+    expect(runPromotesMidTurnNarration("user")).toBe(true);
+    expect(runReplyGuidance("user")).toBe(LONG_WORK_PROGRESS_GUIDANCE);
+    expect(runReplyGuidance("user")).toContain("message_user");
+    expect(runReplyGuidance("messaging")).toBe(LONG_WORK_PROGRESS_GUIDANCE);
   });
 });
 
