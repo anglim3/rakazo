@@ -4078,9 +4078,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           terminalCheckpointComplete = true;
 
           flushPendingTools();
-          // allowSilentEmpty runs (routine, FYI, messaging) may be told to emit
-          // NO_RESPONSE after tools; strip exact-only so the token never posts.
-          const silentReply = allowSilentEmptyRun
+          // Only routine runs are instructed to emit NO_RESPONSE. Other
+          // allowSilentEmpty wakes (FYI, messaging) may finish truly empty.
+          const silentReply = runAllowsSilentEmpty(run.trigger)
             ? stripNoResponseReply(assembled, messageSegments)
             : { assembled, blocks: messageSegments };
           let completionBlocks = silentReply.blocks;

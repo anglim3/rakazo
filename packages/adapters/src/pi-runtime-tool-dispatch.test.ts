@@ -256,7 +256,6 @@ vi.mock("./pi-openai-compatible-provider.js", () => ({
 
 import { maxToolCallsPerTurn, PiAgentRuntime } from "./pi-runtime.js";
 import { TOOL_RESULT_TEXT_LIMIT } from "./pi-runtime-limits.js";
-import { NO_RESPONSE } from "./silent-reply.js";
 
 const destinationTool: ConnectorTool = {
   name: "destination.write",
@@ -767,12 +766,14 @@ describe("Pi connector tool dispatch", () => {
       events.push(event);
     }
 
-    expect(fakeAgentState.followUpMessages[0]).toEqual(
+    const followUp = fakeAgentState.followUpMessages[0] as { role: string; content: string };
+    expect(followUp).toEqual(
       expect.objectContaining({
         role: "user",
-        content: expect.stringContaining(NO_RESPONSE),
+        content: expect.stringContaining("stay silent"),
       }),
     );
+    expect(followUp.content).not.toContain("NO_RESPONSE");
     expect(events).not.toContainEqual({
       type: "text",
       text: "I completed the tool step but could not produce a final response. Please ask me to continue.",
