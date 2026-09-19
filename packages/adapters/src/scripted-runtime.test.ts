@@ -79,7 +79,9 @@ describe("inferScript write_file", () => {
       inferScript("write a file in your home called notes/result.txt that says routine-ok"),
     ).toEqual([
       {
-        toolCalls: [{ name: "write_file", args: { path: "notes/result.txt", content: "routine-ok\n" } }],
+        toolCalls: [
+          { name: "write_file", args: { path: "notes/result.txt", content: "routine-ok\n" } },
+        ],
       },
       { assistant: "writing that into my home now.", complete: true },
     ]);
