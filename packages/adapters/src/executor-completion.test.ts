@@ -3,6 +3,8 @@ import {
   completionMarksUnread,
   completionMessageSegments,
   completionNotificationBody,
+  completionNotificationPreview,
+  isExactNoResponse,
   LONG_WORK_PROGRESS_GUIDANCE,
   NO_RESPONSE,
   ROUTINE_SILENT_REPLY_GUIDANCE,
@@ -76,6 +78,19 @@ describe("completionNotificationBody", () => {
 
   it("uses the empty-run text when that is all the run produced", () => {
     expect(completionNotificationBody("", completionMessageSegments([]))).toBe("done.");
+  });
+});
+
+describe("completionNotificationPreview", () => {
+  it("strips Markdown and truncates the plain text", () => {
+    expect(completionNotificationPreview("Created **Projects-CoS** as a **Project**")).toBe(
+      "Created Projects-CoS as a Project",
+    );
+    const preview = completionNotificationPreview(`${"word ".repeat(50)}**end**`);
+    expect(preview).toHaveLength(180);
+    expect(preview).not.toContain("*");
+    expect(preview.startsWith("word word")).toBe(true);
+    expect(completionNotificationPreview("**  **")).toBe("");
   });
 });
 
@@ -164,6 +179,16 @@ describe("stripNoResponseReply", () => {
     const blocks = [{ kind: "text" as const, text }];
     expect(stripNoResponseReply(text, blocks)).toEqual({ assembled: text, blocks });
     expect(completionMarksUnread("routine", text)).toBe(true);
+  });
+
+  it("fails closed on case, punctuation, and wrapped variants", () => {
+    expect(isExactNoResponse("no_response")).toBe(false);
+    expect(isExactNoResponse("NO_RESPONSE.")).toBe(false);
+    expect(isExactNoResponse(`\`${NO_RESPONSE}\``)).toBe(false);
+    expect(stripNoResponseReply("no_response", [{ kind: "text", text: "no_response" }])).toEqual({
+      assembled: "no_response",
+      blocks: [{ kind: "text", text: "no_response" }],
+    });
   });
 
   it("does not strip when assembled is the sentinel but a text block has extra prose", () => {
