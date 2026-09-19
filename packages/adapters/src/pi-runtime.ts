@@ -79,6 +79,8 @@ const MAX_PARALLEL_SUBAGENTS = 4;
 const MAX_SILENT_TOOL_CONTINUATIONS = 3;
 const SILENT_TOOL_CONTINUATION_PROMPT =
   "Continue the original task from the latest tool result. Do not stop after a tool call; use any remaining tools needed, then give the user the final answer.";
+const SILENT_ALLOWED_TOOL_CONTINUATION_PROMPT =
+  "Continue the original task from the latest tool result. If you were instructed to stay silent when there is nothing to report, follow that instruction for the entire final assistant reply. Otherwise use any remaining tools needed, then give the user the final answer.";
 const TOOL_FINAL_RESPONSE_FALLBACK =
   "I completed the tool step but could not produce a final response. Please ask me to continue.";
 const DEFAULT_COMPUTER_SCREENSHOTS_TO_KEEP = 2;
@@ -356,7 +358,9 @@ export class PiAgentRuntime implements AgentRuntime {
                 silentToolContinuations += 1;
                 agent.followUp({
                   role: "user",
-                  content: SILENT_TOOL_CONTINUATION_PROMPT,
+                  content: request.allowSilentEmpty
+                    ? SILENT_ALLOWED_TOOL_CONTINUATION_PROMPT
+                    : SILENT_TOOL_CONTINUATION_PROMPT,
                   timestamp: Date.now(),
                 });
               }
@@ -414,10 +418,15 @@ export class PiAgentRuntime implements AgentRuntime {
             streamed = budgetMessage;
           }
         } else if (!host.pausePending && toolWorkPendingFinal) {
-          // Discard cumulative pre-tool narration from the terminal payload and make the
-          // missing final response visible to the user instead of silently completing.
-          streamed = TOOL_FINAL_RESPONSE_FALLBACK;
-          queue.push({ type: "text", text: streamed });
+          if (request.allowSilentEmpty) {
+            // Scheduled/FYI runs may finish after tools with no user-visible text.
+            streamed = "";
+          } else {
+            // Discard cumulative pre-tool narration from the terminal payload and make the
+            // missing final response visible to the user instead of silently completing.
+            streamed = TOOL_FINAL_RESPONSE_FALLBACK;
+            queue.push({ type: "text", text: streamed });
+          }
         } else if (!streamed.trim() && !host.pausePending) {
           streamed = "";
           const lastMessage = agent.state.messages.at(-1);
@@ -425,7 +434,7 @@ export class PiAgentRuntime implements AgentRuntime {
           if (fallback.trim()) {
             queue.push({ type: "text", text: fallback });
             streamed = fallback;
-          } else if (toolWorkPendingFinal) {
+          } else if (toolWorkPendingFinal && !request.allowSilentEmpty) {
             // A tool-bearing run must never finish with only a progress/narration message.
             streamed = TOOL_FINAL_RESPONSE_FALLBACK;
             queue.push({ type: "text", text: streamed });
@@ -834,6 +843,20 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
           computer_mode: raw.computer_mode ? String(raw.computer_mode) : "",
         };
       }
+      if (tool.name === "update_bot") {
+        const notifyRaw = raw.notifyOnFinish ?? raw.notify_on_finish;
+        return {
+          ...(raw.name !== undefined ? { name: String(raw.name) } : {}),
+          ...(raw.title !== undefined ? { title: String(raw.title) } : {}),
+          ...(raw.description !== undefined ? { description: String(raw.description) } : {}),
+          ...(raw.color !== undefined ? { color: String(raw.color) } : {}),
+          ...(raw.artifact_id !== undefined ? { artifact_id: String(raw.artifact_id) } : {}),
+          ...(raw.use_attached_image !== undefined
+            ? { use_attached_image: raw.use_attached_image }
+            : {}),
+          ...(notifyRaw !== undefined ? { notifyOnFinish: notifyRaw } : {}),
+        };
+      }
       if (tool.name === "create_space") {
         return { name: String(raw.name ?? "") };
       }
@@ -1235,6 +1258,17 @@ function builtinParameters(tool: ConnectorTool) {
       instructions: Type.Optional(Type.String()),
       prompt: Type.Optional(Type.String()),
       computer_mode: Type.Optional(Type.Union([Type.Literal("team"), Type.Literal("dedicated")])),
+    });
+  }
+  if (tool.name === "update_bot") {
+    return Type.Object({
+      name: Type.Optional(Type.String()),
+      title: Type.Optional(Type.String()),
+      description: Type.Optional(Type.String()),
+      color: Type.Optional(Type.String()),
+      artifact_id: Type.Optional(Type.String()),
+      use_attached_image: Type.Optional(Type.Boolean()),
+      notifyOnFinish: Type.Optional(Type.Boolean()),
     });
   }
   if (tool.name === "create_space") {
