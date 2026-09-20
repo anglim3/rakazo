@@ -62,6 +62,20 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   await runningCloud.getByTestId("agent-run-open-web-menu").click();
   await expect(page.getByRole("menuitem", { name: "Open in Web" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+  const menuBox = await runningCloud.boundingBox();
+  expect(menuBox).toBeTruthy();
+  const menuPath = testInfo.outputPath("after-open-web-menu-dark.png");
+  await page.screenshot({
+    animations: "disabled",
+    path: menuPath,
+    clip: {
+      x: Math.max(0, menuBox!.x - 8),
+      y: Math.max(0, menuBox!.y - 8),
+      width: menuBox!.width + 16,
+      height: menuBox!.height + 120,
+    },
+  });
+  await saveShot(testInfo, "after-open-web-menu-dark", menuPath);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menuitem", { name: "Copy link" })).toHaveCount(0);
   await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
@@ -257,6 +271,20 @@ test("standalone docs demo page is clickable without the app", async ({ page }, 
   await runningCloud.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("menuitem", { name: "Open in Web" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+  const demoCardBox = await runningCloud.boundingBox();
+  expect(demoCardBox).toBeTruthy();
+  const demoMenuPath = testInfo.outputPath("after-demo-menu-dark.png");
+  await page.screenshot({
+    animations: "disabled",
+    path: demoMenuPath,
+    clip: {
+      x: Math.max(0, demoCardBox!.x - 8),
+      y: Math.max(0, demoCardBox!.y - 8),
+      width: demoCardBox!.width + 16,
+      height: demoCardBox!.height + 120,
+    },
+  });
+  await saveShot(testInfo, "after-demo-menu-dark", demoMenuPath);
   await page.keyboard.press("Escape");
 
   await subagent.first().getByTestId("agent-run-open").click();
