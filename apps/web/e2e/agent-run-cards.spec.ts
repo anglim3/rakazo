@@ -300,3 +300,51 @@ test("standalone docs demo page is clickable without the app", async ({ page }, 
   await page.screenshot({ animations: "disabled", path: demoPath, fullPage: true });
   await saveShot(testInfo, "after-demo-dark", demoPath);
 });
+
+test("standalone mobile demo page opens a bottom sheet", async ({ page }, testInfo) => {
+  const demo = path.resolve(
+    fileURLToPath(new URL("../../../docs/subagent-card/demo-mobile.html", import.meta.url)),
+  );
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto(pathToFileURL(demo).href);
+
+  const phone = page.getByTestId("demo-mobile-phone");
+  const subagent = page.getByTestId("subagent-card");
+  const cloud = page.getByTestId("cloud-agent-card");
+  await expect(phone).toBeVisible();
+  await expect(subagent).toHaveCount(2);
+  await expect(cloud).toHaveCount(2);
+  await expect(subagent.getByRole("link", { name: "View PR" })).toHaveCount(0);
+  await expect(subagent.getByRole("button", { name: "Open", exact: true })).toHaveCount(2);
+
+  const runningCloud = page.locator('[data-testid="cloud-agent-card"][data-status="running"]');
+  const finishedCloud = page.locator('[data-testid="cloud-agent-card"][data-status="finished"]');
+  await expect(runningCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
+  await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
+  await expect(finishedCloud.getByRole("link", { name: "View PR" })).toBeVisible();
+
+  await runningCloud.getByRole("button", { name: "More" }).click();
+  await expect(page.getByRole("menuitem", { name: "Open in Web" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("menuitem", { name: "Copy link" })).toHaveCount(0);
+
+  await subagent.first().getByTestId("agent-run-open").click();
+  const sheet = page.getByTestId("agent-run-dialog");
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole("heading", { name: "Prompt" })).toBeVisible();
+  await expect(sheet.getByRole("heading", { name: "Progress" })).toBeVisible();
+  await expect(sheet.getByRole("heading", { name: "Result" })).toHaveCount(0);
+  const sheetPath = testInfo.outputPath("after-demo-mobile-sheet-dark.png");
+  await phone.screenshot({ animations: "disabled", path: sheetPath });
+  await saveShot(testInfo, "after-demo-mobile-sheet-dark", sheetPath);
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  await page.locator(".thread").evaluate((node) => {
+    node.scrollTop = 0;
+  });
+
+  const demoPath = testInfo.outputPath("after-demo-mobile-dark.png");
+  await phone.screenshot({ animations: "disabled", path: demoPath });
+  await saveShot(testInfo, "after-demo-mobile-dark", demoPath);
+});
