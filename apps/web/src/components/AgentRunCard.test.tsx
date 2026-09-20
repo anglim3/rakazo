@@ -51,7 +51,7 @@ describe("AgentRunCard", () => {
 
     expect(html).toContain('data-testid="cloud-agent-card"');
     expect(html).toContain('data-status="running"');
-    expect(html).toContain("w-[min(32rem,100%)]");
+    expect(html).toContain("w-[512px]");
     expect(html).toContain("rounded-2xl");
     expect(html).toContain("bg-secondary");
     expect(html).toContain("p-4");

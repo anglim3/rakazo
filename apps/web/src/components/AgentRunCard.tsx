@@ -139,8 +139,9 @@ function ActionLink({ action }: { action: AgentRunAction }) {
       target="_blank"
       rel="noreferrer"
       className={cn(
-        buttonVariants({ variant: primary ? "default" : "outline", size: "sm" }),
+        buttonVariants({ variant: primary ? "default" : "outline", size: "default" }),
         "no-underline",
+        !primary && "bg-transparent dark:bg-transparent",
       )}
     >
       {primary ? (
@@ -200,7 +201,7 @@ export function AgentRunCard({
         data-slot="card"
         data-testid={testId}
         data-status={status}
-        className="flex w-[min(32rem,100%)] max-w-full min-w-0 flex-col gap-3 overflow-hidden rounded-2xl bg-secondary p-4 text-foreground"
+        className="flex w-[512px] max-w-full min-w-0 flex-col gap-3 overflow-hidden rounded-2xl bg-secondary p-4 text-foreground"
       >
         <button
           type="button"
@@ -279,7 +280,7 @@ export function AgentRunStack({ children, heading }: { children: ReactNode; head
     <div
       data-testid="agent-run-stack"
       className={cn(
-        "flex w-[min(32rem,100%)] max-w-full flex-col",
+        "flex w-[512px] max-w-full flex-col",
         stacked && "gap-2 rounded-2xl bg-accent p-2",
       )}
     >
