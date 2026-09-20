@@ -40,8 +40,12 @@ test("agent run cards match the compact panel layout", async ({ page }, testInfo
   await expect(runningCloud).toBeVisible();
   await expect(finishedCloud).toBeVisible();
   await expect(finishedCloud).toContainText("Pull request");
+  await expect(runningCloud).toContainText("Cloud agent");
   await expect(page.getByTestId("agent-run-stack")).toHaveCount(5);
   await expect(page.getByTestId("shot-stack").getByTestId("agent-run-stack")).toBeVisible();
+  await expect(page.getByTestId("shot-stack").getByTestId("agent-run-stack-heading")).toContainText(
+    "Started 4 subagents",
+  );
   await expect(finishedCloud.locator("xpath=ancestor::a[1]")).toHaveAttribute(
     "href",
     "https://github.com/example/demo/pull/1",
@@ -58,6 +62,9 @@ test("agent run cards match the compact panel layout", async ({ page }, testInfo
   expect(box).toBeTruthy();
   expect(box!.width).toBeGreaterThanOrEqual(320);
   expect(box!.width).toBeLessThanOrEqual(420);
+  const subBox = await subagent.first().boundingBox();
+  expect(subBox).toBeTruthy();
+  expect(Math.abs(box!.height - subBox!.height)).toBeLessThan(8);
 
   await page.goto(`${fixture}?theme=light`);
   await expect(page.getByTestId("cloud-agent-card").first()).toBeVisible();

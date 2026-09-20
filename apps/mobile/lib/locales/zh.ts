@@ -53,6 +53,8 @@ export const ZH_MESSAGES: Record<string, string> = {
   Light: "浅色",
   System: "跟随系统",
   "{count} agents working": "{count} 个智能体正在工作",
+  "Started {count} subagents": "已启动 {count} 个子智能体",
+  "Started {count} agents": "已启动 {count} 个智能体",
   "{count}m ago": "{count} 分钟前",
   "{count}h ago": "{count} 小时前",
   "{count}d ago": "{count} 天前",

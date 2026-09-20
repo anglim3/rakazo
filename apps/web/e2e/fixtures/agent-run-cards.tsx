@@ -1,5 +1,6 @@
 import { setupI18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
+import { useLingui } from "@lingui/react/macro";
 import type { MessageBlock } from "@rakazo/contracts";
 import { Badge } from "@rakazo/ui-web/components/ui/badge";
 import { Card, CardContent } from "@rakazo/ui-web/components/ui/card";
@@ -142,58 +143,62 @@ function Shot({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-const currentGallery = (
-  <>
-    <Shot id="shot-cloud-running">
-      <CloudAgentCard block={cloudRunning} />
-    </Shot>
-    <Shot id="shot-cloud-finished">
-      <CloudAgentCard block={cloudFinished} />
-    </Shot>
-    <Shot id="shot-subagent-running">
-      <SubagentCard block={subagentRunning} />
-    </Shot>
-    <Shot id="shot-subagent-completed">
-      <SubagentCard block={subagentCompleted} />
-    </Shot>
-    <Shot id="shot-stack">
-      <AgentRunStack>
-        <AgentRunCard
-          testId="stack-running-a"
-          title="Map the message card layout"
-          summary="Searching files · Explore"
-          tone="running"
-          status="running"
-          statusLabel="running"
-        />
-        <AgentRunCard
-          testId="stack-running-b"
-          title="Draft the pull request body"
-          summary="Writing summary · Writer"
-          tone="running"
-          status="running"
-          statusLabel="running"
-        />
-        <AgentRunCard
-          testId="stack-running-c"
-          title="Check locale catalogs"
-          summary="Reading strings · Review"
-          tone="running"
-          status="running"
-          statusLabel="running"
-        />
-        <AgentRunCard
-          testId="stack-pending"
-          title="Queue a follow-up pass"
-          summary="Pending · Review"
-          tone="cancelled"
-          status="cancelled"
-          statusLabel="cancelled"
-        />
-      </AgentRunStack>
-    </Shot>
-  </>
-);
+function CurrentGallery() {
+  const { t } = useLingui();
+  const stackCount = 4;
+  return (
+    <>
+      <Shot id="shot-cloud-running">
+        <CloudAgentCard block={cloudRunning} />
+      </Shot>
+      <Shot id="shot-cloud-finished">
+        <CloudAgentCard block={cloudFinished} />
+      </Shot>
+      <Shot id="shot-subagent-running">
+        <SubagentCard block={subagentRunning} />
+      </Shot>
+      <Shot id="shot-subagent-completed">
+        <SubagentCard block={subagentCompleted} />
+      </Shot>
+      <Shot id="shot-stack">
+        <AgentRunStack heading={t`Started ${stackCount} subagents`}>
+          <AgentRunCard
+            testId="stack-running-a"
+            title="Map the message card layout"
+            summary="Searching files · Explore"
+            tone="running"
+            status="running"
+            statusLabel="running"
+          />
+          <AgentRunCard
+            testId="stack-running-b"
+            title="Draft the pull request body"
+            summary="Writing summary · Writer"
+            tone="running"
+            status="running"
+            statusLabel="running"
+          />
+          <AgentRunCard
+            testId="stack-running-c"
+            title="Check locale catalogs"
+            summary="Reading strings · Review"
+            tone="running"
+            status="running"
+            statusLabel="running"
+          />
+          <AgentRunCard
+            testId="stack-pending"
+            title="Queue a follow-up pass"
+            summary="Pending · Review"
+            tone="cancelled"
+            status="cancelled"
+            statusLabel="cancelled"
+          />
+        </AgentRunStack>
+      </Shot>
+    </>
+  );
+}
 
 const legacyGallery = (
   <>
@@ -215,7 +220,7 @@ const legacyGallery = (
 createRoot(document.getElementById("root")!).render(
   <I18nProvider i18n={i18n}>
     <main className="flex min-h-screen flex-col gap-6 bg-background p-8 text-foreground">
-      {gallery === "legacy" ? legacyGallery : currentGallery}
+      {gallery === "legacy" ? legacyGallery : <CurrentGallery />}
     </main>
   </I18nProvider>,
 );

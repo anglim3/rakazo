@@ -1,6 +1,16 @@
+import { setupI18n } from "@lingui/core";
+import { I18nProvider } from "@lingui/react";
+import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AgentRunCard, AgentRunStack, joinDetail, oneLineSummary } from "./AgentRunCard";
+
+function render(ui: ReactNode) {
+  const i18n = setupI18n({ locale: "en", messages: {} });
+  i18n.load("en", {});
+  i18n.activate("en");
+  return renderToString(<I18nProvider i18n={i18n}>{ui}</I18nProvider>);
+}
 
 describe("oneLineSummary", () => {
   it("collapses whitespace and trims", () => {
@@ -20,7 +30,7 @@ describe("joinDetail", () => {
 
 describe("AgentRunCard", () => {
   it("renders a compact stacked row with left status, title, and muted detail", () => {
-    const html = renderToString(
+    const html = render(
       <AgentRunCard
         testId="cloud-agent-card"
         title="Add a README"
@@ -35,7 +45,7 @@ describe("AgentRunCard", () => {
     expect(html).toContain('data-status="running"');
     expect(html).toContain("w-[360px]");
     expect(html).toContain("rounded-lg");
-    expect(html).toContain("bg-card");
+    expect(html).toContain("bg-background");
     expect(html).toContain("font-semibold");
     expect(html).toContain("Add a README");
     expect(html).toContain("Creating a pull request");
@@ -46,8 +56,21 @@ describe("AgentRunCard", () => {
     expect(html).not.toContain("<a ");
   });
 
+  it("keeps a two-line row when the muted line is empty", () => {
+    const html = render(
+      <AgentRunCard
+        testId="cloud-agent-card"
+        title="Add a README"
+        tone="running"
+        status="running"
+        statusLabel="running"
+      />,
+    );
+    expect(html).toContain("min-h-4");
+  });
+
   it("uses check, x, and muted pending glyphs", () => {
-    const success = renderToString(
+    const success = render(
       <AgentRunCard
         testId="subagent-card"
         title="Explore"
@@ -56,7 +79,7 @@ describe("AgentRunCard", () => {
         statusLabel="completed"
       />,
     );
-    const failed = renderToString(
+    const failed = render(
       <AgentRunCard
         testId="subagent-card"
         title="Explore"
@@ -65,7 +88,7 @@ describe("AgentRunCard", () => {
         statusLabel="failed"
       />,
     );
-    const cancelled = renderToString(
+    const cancelled = render(
       <AgentRunCard
         testId="cloud-agent-card"
         title="Add a README"
@@ -75,15 +98,14 @@ describe("AgentRunCard", () => {
       />,
     );
 
-    expect(success).toContain("text-success");
+    expect(success).not.toContain("text-success");
     expect(failed).toContain("text-destructive");
     expect(cancelled).toContain("text-muted-foreground");
-    expect(cancelled).not.toContain("opacity-70");
     expect(success).not.toContain("animate-spin");
   });
 
   it("wraps the row in a link when a url exists", () => {
-    const html = renderToString(
+    const html = render(
       <AgentRunCard
         testId="cloud-agent-card"
         title="Add a README"
@@ -100,9 +122,9 @@ describe("AgentRunCard", () => {
     expect(html).toContain("Pull request");
   });
 
-  it("stacks rows in a quiet panel", () => {
-    const html = renderToString(
-      <AgentRunStack>
+  it("stacks rows in a quiet panel with a started heading", () => {
+    const html = render(
+      <AgentRunStack heading="Started 2 subagents">
         <AgentRunCard
           testId="subagent-card"
           title="Map the layout"
@@ -111,9 +133,36 @@ describe("AgentRunCard", () => {
           status="running"
           statusLabel="running"
         />
+        <AgentRunCard
+          testId="stack-pending"
+          title="Queue a follow-up pass"
+          summary="Pending · Review"
+          tone="cancelled"
+          status="cancelled"
+          statusLabel="cancelled"
+        />
       </AgentRunStack>,
     );
     expect(html).toContain('data-testid="agent-run-stack"');
-    expect(html).toContain("bg-muted");
+    expect(html).toContain("bg-accent");
+    expect(html).toContain("Started 2 subagents");
+    expect(html).toContain('data-testid="agent-run-stack-heading"');
+  });
+
+  it("omits the heading on a single-row panel", () => {
+    const html = render(
+      <AgentRunStack>
+        <AgentRunCard
+          testId="cloud-agent-card"
+          title="Add a README"
+          summary="Cloud agent"
+          tone="running"
+          status="running"
+          statusLabel="running"
+        />
+      </AgentRunStack>,
+    );
+    expect(html).not.toContain("agent-run-stack-heading");
+    expect(html).not.toContain("Started");
   });
 });

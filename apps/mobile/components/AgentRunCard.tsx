@@ -1,6 +1,7 @@
 import type { MessageBlock } from "@rakazo/contracts";
 import { cloudAgentHttpsUrl } from "@rakazo/core";
 import type { ReactNode } from "react";
+import { Children } from "react";
 import type { PressableProps, ViewProps } from "react-native";
 import { ActivityIndicator, Linking, Pressable, Text, View } from "react-native";
 import { useI18n } from "../lib/i18n";
@@ -8,6 +9,7 @@ import { useMobileTokens } from "../lib/native";
 import { NativeSymbol } from "./native-symbol";
 
 export type AgentRunTone = "running" | "success" | "failed" | "cancelled";
+export type AgentRunStackKind = "subagent" | "agent";
 
 export function oneLineSummary(value: string | undefined): string {
   return value?.replace(/\s+/g, " ").trim() ?? "";
@@ -33,6 +35,7 @@ function StatusGlyph({
         accessibilityLabel={label}
         size="small"
         color={tokens.foreground}
+        style={{ transform: [{ scale: 0.72 }] }}
       />
     );
   }
@@ -41,7 +44,7 @@ function StatusGlyph({
     tone === "success" ? "checkmark" : tone === "cancelled" ? "ellipse-outline" : "close";
   const color =
     tone === "success"
-      ? tokens.success
+      ? tokens.foreground
       : tone === "cancelled"
         ? tokens.mutedForeground
         : tokens.destructive;
@@ -91,17 +94,15 @@ export function AgentRunCard({
         alignItems: "flex-start",
         gap: 10,
         borderRadius: 8,
-        borderWidth: 1,
-        borderColor: tokens.border,
-        backgroundColor: tokens.card,
+        backgroundColor: tokens.background,
         paddingHorizontal: 12,
         paddingVertical: 8,
       }}
     >
       <View
         style={{
-          width: 16,
-          height: 16,
+          width: 14,
+          height: 14,
           marginTop: 2,
           alignItems: "center",
           justifyContent: "center",
@@ -122,14 +123,18 @@ export function AgentRunCard({
         >
           {title}
         </Text>
-        {summaryText ? (
-          <Text
-            numberOfLines={1}
-            style={{ color: tokens.mutedForeground, fontSize: 12, lineHeight: 16, marginTop: 2 }}
-          >
-            {summaryText}
-          </Text>
-        ) : null}
+        <Text
+          numberOfLines={1}
+          style={{
+            color: tokens.mutedForeground,
+            fontSize: 12,
+            lineHeight: 16,
+            marginTop: 2,
+            minHeight: 16,
+          }}
+        >
+          {summaryText || " "}
+        </Text>
       </View>
     </View>
   );
@@ -174,10 +179,10 @@ export function CloudAgentCard({
           : "failed";
   const prHref = cloudAgentHttpsUrl(block.prUrl);
   const href = prHref ?? cloudAgentHttpsUrl(block.url);
-  const summary = prHref ? t("Pull request") : block.branch;
+  const summary = prHref ? t("Pull request") : oneLineSummary(block.branch) || t("Cloud agent");
 
   return (
-    <AgentRunStack>
+    <AgentRunStack kind="agent">
       <AgentRunCard
         testID="cloud-agent-card"
         title={title}
@@ -237,21 +242,59 @@ export function SubagentCard({
   );
 }
 
-export function AgentRunStack({ children }: { children: ReactNode }) {
+export function AgentRunStack({
+  children,
+  kind = "subagent",
+}: {
+  children: ReactNode;
+  kind?: AgentRunStackKind;
+}) {
   const tokens = useMobileTokens();
+  const { t } = useI18n();
+  const items = Children.toArray(children);
+  const count = items.length;
+  const stacked = count > 1;
+  const heading = stacked
+    ? kind === "subagent"
+      ? t("Started {count} subagents", { count })
+      : t("Started {count} agents", { count })
+    : undefined;
+
   return (
     <View
       style={{
         maxWidth: 360,
         width: "100%",
         alignSelf: "flex-start",
-        gap: 6,
+        gap: stacked ? 6 : 0,
         borderRadius: 12,
-        backgroundColor: tokens.muted,
-        padding: 6,
+        backgroundColor: tokens.accent,
+        padding: stacked ? 6 : 4,
       }}
     >
-      {children}
+      {heading ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 2,
+            paddingHorizontal: 8,
+            paddingTop: 2,
+            paddingBottom: 2,
+          }}
+        >
+          <Text style={{ color: tokens.mutedForeground, fontSize: 12, lineHeight: 16 }}>
+            {heading}
+          </Text>
+          <NativeSymbol
+            ios="chevron.down"
+            android="chevron-down"
+            size={14}
+            color={tokens.mutedForeground}
+          />
+        </View>
+      ) : null}
+      {items}
     </View>
   );
 }

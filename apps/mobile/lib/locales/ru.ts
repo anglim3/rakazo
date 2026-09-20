@@ -65,6 +65,8 @@ export const RU_MESSAGES: Record<string, string> = {
   Light: "Светлая",
   System: "Системная",
   "{count} agents working": "Работает агентов: {count}",
+  "Started {count} subagents": "Запущено субагентов: {count}",
+  "Started {count} agents": "Запущено агентов: {count}",
   "{count}m ago": "{count} мин назад",
   "{count}h ago": "{count} ч назад",
   "{count}d ago": "{count} дн. назад",

@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import type { MessageBlock } from "@rakazo/contracts";
 import { cloudAgentHttpsUrl } from "@rakazo/core";
 import type { AgentRunTone } from "./AgentRunCard";
-import { AgentRunCard, AgentRunStack } from "./AgentRunCard";
+import { AgentRunCard, AgentRunStack, oneLineSummary } from "./AgentRunCard";
 
 function cloudAgentTone(
   status: Extract<MessageBlock, { kind: "cloud_agent" }>["status"],
@@ -29,7 +29,7 @@ export function CloudAgentCard({
         : block.status === "cancelled"
           ? t`cancelled`
           : t`failed`;
-  const summary = prHref ? t`Pull request` : block.branch;
+  const summary = prHref ? t`Pull request` : oneLineSummary(block.branch) || t`Cloud agent`;
 
   return (
     <AgentRunStack>
