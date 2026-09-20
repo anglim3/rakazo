@@ -1,8 +1,8 @@
 import { useLingui } from "@lingui/react/macro";
 import type { MessageBlock } from "@rakazo/contracts";
-import { cloudAgentHttpsUrl } from "@rakazo/core";
-import type { AgentRunLink, AgentRunTone } from "./AgentRunCard";
-import { AgentRunCard, AgentRunStack, oneLineSummary } from "./AgentRunCard";
+import { cloudAgentHttpsUrl, pullRequestNumberFromUrl } from "@rakazo/core";
+import type { AgentRunAction, AgentRunFileStats, AgentRunTone } from "./AgentRunCard";
+import { AgentRunCard, oneLineSummary } from "./AgentRunCard";
 
 function cloudAgentTone(
   status: Extract<MessageBlock, { kind: "cloud_agent" }>["status"],
@@ -23,29 +23,44 @@ export function CloudAgentCard({
   const agentHref = cloudAgentHttpsUrl(block.url);
   const statusLabel =
     block.status === "running"
-      ? t`running`
+      ? t`Running`
       : block.status === "finished"
-        ? t`finished`
+        ? t`Done`
         : block.status === "cancelled"
-          ? t`cancelled`
-          : t`failed`;
-  const summary = prHref ? t`Pull request` : oneLineSummary(block.branch) || t`Cloud agent`;
-  const links: AgentRunLink[] = [];
-  if (prHref) links.push({ href: prHref, label: t`Pull request` });
-  if (agentHref && agentHref !== prHref) links.push({ href: agentHref, label: t`Open` });
+          ? t`Cancelled`
+          : t`Failed`;
+  const prNumber = pullRequestNumberFromUrl(prHref);
+  const prLabel = prNumber != null ? t`PR #${prNumber}` : undefined;
+  const prLine = [oneLineSummary(block.branch), prLabel].filter(Boolean).join(" ");
+  const filesChanged = block.filesChanged;
+  const filesLabel = filesChanged != null ? t`${filesChanged} files changed` : undefined;
+  const fileStats: AgentRunFileStats | undefined =
+    filesChanged != null || block.additions != null || block.deletions != null
+      ? {
+          ...(filesChanged != null ? { filesChanged } : {}),
+          ...(block.additions != null ? { additions: block.additions } : {}),
+          ...(block.deletions != null ? { deletions: block.deletions } : {}),
+        }
+      : undefined;
+  const actions: AgentRunAction[] = [];
+  if (prHref) actions.push({ href: prHref, label: t`View PR`, kind: "primary" });
+  if (agentHref && agentHref !== prHref) {
+    actions.push({ href: agentHref, label: t`Open in Web`, kind: "secondary" });
+  }
 
   return (
-    <AgentRunStack>
-      <AgentRunCard
-        testId="cloud-agent-card"
-        title={block.title}
-        summary={summary}
-        tone={cloudAgentTone(block.status)}
-        status={block.status}
-        statusLabel={statusLabel}
-        lines={[block.branch]}
-        links={links}
-      />
-    </AgentRunStack>
+    <AgentRunCard
+      testId="cloud-agent-card"
+      title={block.title || t`Cloud agent`}
+      tone={cloudAgentTone(block.status)}
+      status={block.status}
+      statusLabel={statusLabel}
+      prLine={prLine}
+      fileStats={fileStats}
+      filesLabel={filesLabel}
+      lines={[block.branch, prLabel, filesLabel]}
+      links={actions}
+      actions={actions}
+    />
   );
 }

@@ -102,6 +102,10 @@ msgstr "{botName} 的电脑"
 msgid "{days}d ago"
 msgstr "{days} 天前"
 
+#: src/components/CloudAgentCard.tsx:36
+msgid "{filesChanged} files changed"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:138
 msgid "{hours}h ago"
 msgstr "{hours} 小时前"
@@ -2636,6 +2640,10 @@ msgstr "打开 {0}"
 msgid "Open in full window"
 msgstr "在完整窗口中打开"
 
+#: src/components/CloudAgentCard.tsx:48
+msgid "Open in Web"
+msgstr ""
+
 #: src/pages/Shell.tsx:3089
 msgid "Open navigation"
 msgstr "打开导航"
@@ -2757,6 +2765,10 @@ msgstr "播放中…"
 #: src/pages/RoutineEditor.tsx:600
 msgid "POST to"
 msgstr "POST 到"
+
+#: src/components/CloudAgentCard.tsx:33
+msgid "PR #{prNumber}"
+msgstr ""
 
 #. placeholder {0}: props.name
 #: src/components/ArtifactFileCard.tsx:65
@@ -3733,6 +3745,10 @@ msgstr "校验并添加"
 #: src/pages/PluginsOverlay.tsx:1090
 msgid "Verifying…"
 msgstr "正在校验…"
+
+#: src/components/CloudAgentCard.tsx:46
+msgid "View PR"
+msgstr ""
 
 #: src/pages/SettingsOverlay.tsx:86
 #: src/pages/Shell.tsx:5138

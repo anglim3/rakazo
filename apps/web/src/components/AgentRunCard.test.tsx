@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
-  AGENT_RUN_CARD_HEIGHT_PX,
+  AGENT_RUN_CARD_WIDTH_PX,
   AgentRunCard,
   AgentRunStack,
   joinDetail,
@@ -38,50 +38,81 @@ describe("joinDetail", () => {
 });
 
 describe("AgentRunCard", () => {
-  it("renders a compact stacked row with left status, title, and muted detail", () => {
+  it("renders the Cursor-style panel with title and status pill", () => {
     const html = render(
       <AgentRunCard
         testId="cloud-agent-card"
         title="Add a README"
-        summary="Creating a pull request"
         tone="running"
         status="running"
-        statusLabel="running"
+        statusLabel="Running"
       />,
     );
 
     expect(html).toContain('data-testid="cloud-agent-card"');
     expect(html).toContain('data-status="running"');
-    expect(html).toContain("w-[360px]");
-    expect(html).toContain("h-[52px]");
-    expect(html).toContain("overflow-hidden");
-    expect(html).toContain("rounded-lg");
-    expect(html).toContain("bg-background");
+    expect(html).toContain("w-[min(32rem,100%)]");
+    expect(html).toContain("rounded-2xl");
+    expect(html).toContain("bg-secondary");
+    expect(html).toContain("p-4");
     expect(html).toContain("font-semibold");
     expect(html).toContain("Add a README");
-    expect(html).toContain("Creating a pull request");
+    expect(html).toContain("Running");
+    expect(html).toContain("bg-success/15");
     expect(html).toContain("truncate");
+    expect(html).toContain("overflow-hidden");
     expect(html).toContain('role="status"');
-    expect(html).toContain('aria-label="running"');
-    expect(html).toContain("animate-spin");
+    expect(html).toContain('aria-label="Running"');
     expect(html).toContain('type="button"');
     expect(html).toContain('aria-haspopup="dialog"');
-    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("h-[52px]");
     expect(html).not.toContain("agent-run-dialog");
+    expect(html).not.toContain("files changed");
+    expect(html).not.toContain("<a ");
+    expect(AGENT_RUN_CARD_WIDTH_PX).toBe(512);
   });
 
-  it("keeps a two-line row when the muted line is empty", () => {
-    const html = render(
+  it("shows PR meta and file stats only when provided", () => {
+    const withStats = render(
+      <AgentRunCard
+        testId="cloud-agent-card"
+        title="Sandbox MCP filesystem paths (#13)"
+        tone="success"
+        status="finished"
+        statusLabel="Done"
+        prLine="cursor/mcp-path-allowlist-3a30 PR #24"
+        fileStats={{ filesChanged: 6, additions: 487, deletions: 6 }}
+        filesLabel="6 files changed"
+        actions={[
+          { href: "https://github.com/example/demo/pull/24", label: "View PR", kind: "primary" },
+          { href: "https://cursor.com/agents/abc", label: "Open in Web", kind: "secondary" },
+        ]}
+      />,
+    );
+    const withoutStats = render(
       <AgentRunCard
         testId="cloud-agent-card"
         title="Add a README"
         tone="running"
         status="running"
-        statusLabel="running"
+        statusLabel="Running"
       />,
     );
-    expect(html).toContain("h-4");
-    expect(html).toContain("h-[52px]");
+
+    expect(withStats).toContain("cursor/mcp-path-allowlist-3a30 PR #24");
+    expect(withStats).toContain("6 files changed");
+    expect(withStats).toContain("+487");
+    expect(withStats).toContain("-6");
+    expect(withStats).toContain("text-success");
+    expect(withStats).toContain("text-destructive");
+    expect(withStats).toContain("View PR");
+    expect(withStats).toContain("Open in Web");
+    expect(withStats).toContain('href="https://github.com/example/demo/pull/24"');
+    expect(withStats).toContain('href="https://cursor.com/agents/abc"');
+    expect(withoutStats).not.toContain("files changed");
+    expect(withoutStats).not.toContain("+0");
+    expect(withoutStats).not.toContain("text-destructive");
+    expect(withoutStats).not.toContain("View PR");
   });
 
   it("does not grow when progress text is long", () => {
@@ -92,7 +123,7 @@ describe("AgentRunCard", () => {
         summary="Searching"
         tone="running"
         status="running"
-        statusLabel="running"
+        statusLabel="Running"
       />,
     );
     const longHtml = render(
@@ -102,26 +133,26 @@ describe("AgentRunCard", () => {
         summary={LONG_PROGRESS}
         tone="running"
         status="running"
-        statusLabel="running"
+        statusLabel="Running"
         lines={[LONG_PROGRESS]}
       />,
     );
-    expect(longHtml).toContain("h-[52px]");
     expect(longHtml).toContain("truncate");
     expect(longHtml).toContain("overflow-hidden");
-    expect(shortHtml).toContain("h-[52px]");
-    expect(AGENT_RUN_CARD_HEIGHT_PX).toBe(52);
+    expect(longHtml).toContain("h-4");
+    expect(shortHtml).toContain("h-4");
     expect(longHtml).toContain(LONG_PROGRESS);
+    expect(longHtml).not.toContain("h-[52px]");
   });
 
-  it("uses check, x, and muted pending glyphs", () => {
+  it("uses success, destructive, and muted pills", () => {
     const success = render(
       <AgentRunCard
         testId="subagent-card"
         title="Explore"
         tone="success"
         status="completed"
-        statusLabel="completed"
+        statusLabel="Done"
       />,
     );
     const failed = render(
@@ -130,7 +161,7 @@ describe("AgentRunCard", () => {
         title="Explore"
         tone="failed"
         status="failed"
-        statusLabel="failed"
+        statusLabel="Failed"
       />,
     );
     const cancelled = render(
@@ -139,35 +170,34 @@ describe("AgentRunCard", () => {
         title="Add a README"
         tone="cancelled"
         status="cancelled"
-        statusLabel="cancelled"
+        statusLabel="Cancelled"
       />,
     );
 
-    expect(success).not.toContain("text-success");
+    expect(success).toContain("bg-success/15");
     expect(failed).toContain("text-destructive");
     expect(cancelled).toContain("text-muted-foreground");
-    expect(success).not.toContain("animate-spin");
   });
 
-  it("keeps links for the dialog instead of wrapping the row", () => {
+  it("keeps dialog links out of the initial markup until opened", () => {
     const html = render(
       <AgentRunCard
         testId="cloud-agent-card"
         title="Add a README"
-        summary="Pull request"
         tone="success"
         status="finished"
-        statusLabel="finished"
-        links={[{ href: "https://github.com/example/demo/pull/1", label: "Pull request" }]}
+        statusLabel="Done"
+        links={[{ href: "https://github.com/example/demo/pull/1", label: "View PR" }]}
       />,
     );
 
     expect(html).toContain('type="button"');
+    expect(html).toContain("Done");
+    expect(html).not.toContain("agent-run-dialog");
     expect(html).not.toContain('href="https://github.com/example/demo/pull/1"');
-    expect(html).toContain("Pull request");
   });
 
-  it("stacks rows in a quiet panel with a started heading", () => {
+  it("stacks cards in a quiet panel with a started heading", () => {
     const html = render(
       <AgentRunStack heading="Started 2 subagents">
         <AgentRunCard
@@ -176,7 +206,7 @@ describe("AgentRunCard", () => {
           summary="Searching · Explore"
           tone="running"
           status="running"
-          statusLabel="running"
+          statusLabel="Running"
         />
         <AgentRunCard
           testId="stack-pending"
@@ -184,7 +214,7 @@ describe("AgentRunCard", () => {
           summary="Pending · Review"
           tone="cancelled"
           status="cancelled"
-          statusLabel="cancelled"
+          statusLabel="Cancelled"
         />
       </AgentRunStack>,
     );
@@ -194,16 +224,15 @@ describe("AgentRunCard", () => {
     expect(html).toContain('data-testid="agent-run-stack-heading"');
   });
 
-  it("omits the heading on a single-row panel", () => {
+  it("omits the heading on a single-card stack", () => {
     const html = render(
       <AgentRunStack>
         <AgentRunCard
           testId="cloud-agent-card"
           title="Add a README"
-          summary="Cloud agent"
           tone="running"
           status="running"
-          statusLabel="running"
+          statusLabel="Running"
         />
       </AgentRunStack>,
     );

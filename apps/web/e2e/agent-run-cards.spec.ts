@@ -29,7 +29,9 @@ async function saveShot(testInfo: TestInfo, name: string, sourcePath: string) {
   await copyFile(sourcePath, path.join(artifactsDir, `${name}.png`)).catch(() => undefined);
 }
 
-test("agent run cards stay compact and open a work dialog", async ({ page }, testInfo) => {
+test("agent run cards match the Cursor panel and open a work dialog", async ({
+  page,
+}, testInfo) => {
   await page.goto(`${fixture}?theme=dark`);
   const cloud = page.getByTestId("cloud-agent-card");
   const subagent = page.getByTestId("subagent-card");
@@ -41,9 +43,24 @@ test("agent run cards stay compact and open a work dialog", async ({ page }, tes
   const finishedCloud = page.locator('[data-testid="cloud-agent-card"][data-status="finished"]');
   await expect(runningCloud).toBeVisible();
   await expect(finishedCloud).toBeVisible();
-  await expect(finishedCloud).toContainText("Pull request");
-  await expect(runningCloud).toContainText("Cloud agent");
-  await expect(page.getByTestId("agent-run-stack")).toHaveCount(5);
+  await expect(finishedCloud).toContainText("Done");
+  await expect(finishedCloud).toContainText("cursor/mcp-path-allowlist-3a30 PR #24");
+  await expect(finishedCloud).toContainText("6 files changed");
+  await expect(finishedCloud).toContainText("+487");
+  await expect(finishedCloud).toContainText("-6");
+  await expect(finishedCloud.getByRole("link", { name: "View PR" })).toHaveAttribute(
+    "href",
+    "https://github.com/example/demo/pull/24",
+  );
+  await expect(finishedCloud.getByRole("link", { name: "Open in Web" })).toHaveAttribute(
+    "href",
+    "https://cursor.com/agents/abc",
+  );
+  await expect(runningCloud).toContainText("Running");
+  await expect(runningCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
+  await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
+  await expect(runningCloud).not.toContainText("files changed");
+  await expect(page.getByTestId("agent-run-stack")).toHaveCount(1);
   await expect(page.getByTestId("shot-stack").getByTestId("agent-run-stack")).toBeVisible();
   await expect(page.getByTestId("shot-stack").getByTestId("agent-run-stack-heading")).toContainText(
     "Started 4 subagents",
@@ -55,6 +72,8 @@ test("agent run cards stay compact and open a work dialog", async ({ page }, tes
   await expect(subagent.first()).toContainText("Map the message card layout");
   await expect(subagent.first()).toContainText("Searching the thread renderer");
   await expect(subagent.last()).toContainText("Cards should stay compact");
+  await expect(subagent.first()).toContainText("Running");
+  await expect(subagent.last()).toContainText("Done");
 
   const runningBox = await runningCloud.boundingBox();
   const longBox = await page
@@ -68,32 +87,29 @@ test("agent run cards stay compact and open a work dialog", async ({ page }, tes
   expect(runningBox).toBeTruthy();
   expect(longBox).toBeTruthy();
   expect(completedBox).toBeTruthy();
-  expect(runningBox!.width).toBeGreaterThanOrEqual(320);
-  expect(runningBox!.width).toBeLessThanOrEqual(420);
+  expect(runningBox!.width).toBeGreaterThanOrEqual(480);
+  expect(runningBox!.width).toBeLessThanOrEqual(520);
   expect(longBox!.width).toBe(runningBox!.width);
-  expect(longBox!.height).toBeGreaterThanOrEqual(48);
-  expect(longBox!.height).toBeLessThanOrEqual(56);
-  expect(Math.abs(longBox!.height - runningBox!.height)).toBeLessThan(2);
+  expect(longBox!.height).toBeGreaterThan(70);
+  expect(longBox!.height).toBeLessThan(160);
   expect(Math.abs(longBox!.height - completedBox!.height)).toBeLessThan(2);
 
-  await page.getByTestId("shot-subagent-running").getByTestId("subagent-card").click();
+  const longCard = page.getByTestId("shot-subagent-running").getByTestId("subagent-card");
+  await longCard.getByRole("button").click();
   const dialog = page.getByTestId("agent-run-dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText("Searching the thread renderer for the compact");
-  await expect(dialog).toContainText("running");
-  const cardAfterOpen = await page
-    .getByTestId("shot-subagent-running")
-    .getByTestId("subagent-card")
-    .boundingBox();
+  await expect(dialog).toContainText("Running");
+  const cardAfterOpen = await longCard.boundingBox();
   expect(cardAfterOpen!.height).toBe(longBox!.height);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
 
-  await finishedCloud.click();
+  await finishedCloud.getByRole("button").click();
   await expect(page.getByTestId("agent-run-dialog")).toBeVisible();
   await expect(
-    page.getByTestId("agent-run-dialog").getByRole("link", { name: "Pull request" }),
-  ).toHaveAttribute("href", "https://github.com/example/demo/pull/1");
+    page.getByTestId("agent-run-dialog").getByRole("link", { name: "View PR" }),
+  ).toHaveAttribute("href", "https://github.com/example/demo/pull/24");
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("agent-run-dialog")).toHaveCount(0);
 
@@ -116,7 +132,11 @@ test("agent run cards stay compact and open a work dialog", async ({ page }, tes
         await saveShot(testInfo, "after-cloud-finished-dark", screenshotPath);
       }
     }
-    await page.getByTestId("shot-subagent-running").getByTestId("subagent-card").click();
+    await page
+      .getByTestId("shot-subagent-running")
+      .getByTestId("subagent-card")
+      .getByRole("button")
+      .click();
     const workDialog = page.getByTestId("agent-run-dialog");
     await expect(workDialog).toBeVisible();
     const dialogPath = testInfo.outputPath(`after-dialog-running-${theme}.png`);

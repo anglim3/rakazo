@@ -1,9 +1,9 @@
 import type { MessageBlock } from "@rakazo/contracts";
-import { cloudAgentHttpsUrl } from "@rakazo/core";
+import { cloudAgentHttpsUrl, pullRequestNumberFromUrl } from "@rakazo/core";
 import type { ReactNode } from "react";
 import { Children, useState } from "react";
 import type { PressableProps, ViewProps } from "react-native";
-import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useI18n } from "../lib/i18n";
 import { useMobileTokens } from "../lib/native";
 import { NativeSymbol } from "./native-symbol";
@@ -11,16 +11,17 @@ import { NativeSymbol } from "./native-symbol";
 export type AgentRunTone = "running" | "success" | "failed" | "cancelled";
 export type AgentRunStackKind = "subagent" | "agent";
 export type AgentRunLink = { href: string; label: string };
+export type AgentRunAction = AgentRunLink & { kind: "primary" | "secondary" };
+export type AgentRunFileStats = {
+  filesChanged?: number;
+  additions?: number;
+  deletions?: number;
+};
 
-export const AGENT_RUN_CARD_WIDTH_PX = 360;
-export const AGENT_RUN_CARD_HEIGHT_PX = 52;
+export const AGENT_RUN_CARD_WIDTH_PX = 512;
 
 export function oneLineSummary(value: string | undefined): string {
   return value?.replace(/\s+/g, " ").trim() ?? "";
-}
-
-export function joinDetail(parts: Array<string | undefined>): string {
-  return parts.map(oneLineSummary).filter(Boolean).join(" · ");
 }
 
 function uniqueLines(lines: Array<string | undefined>): string[] {
@@ -35,36 +36,21 @@ function uniqueLines(lines: Array<string | undefined>): string[] {
   return result;
 }
 
-function StatusGlyph({
-  tone,
-  label,
-  tokens,
-}: {
-  tone: AgentRunTone;
-  label: string;
-  tokens: ReturnType<typeof useMobileTokens>;
-}) {
-  if (tone === "running") {
-    return (
-      <ActivityIndicator
-        accessibilityRole="progressbar"
-        accessibilityLabel={label}
-        size="small"
-        color={tokens.foreground}
-        style={{ transform: [{ scale: 0.72 }] }}
-      />
-    );
+function hasFileStats(stats: AgentRunFileStats | undefined): boolean {
+  return (
+    stats != null &&
+    (stats.filesChanged != null || stats.additions != null || stats.deletions != null)
+  );
+}
+
+function pillColors(tone: AgentRunTone, tokens: ReturnType<typeof useMobileTokens>) {
+  if (tone === "failed") {
+    return { backgroundColor: `${String(tokens.destructive)}26`, color: tokens.destructive };
   }
-  const ios = tone === "success" ? "checkmark" : tone === "cancelled" ? "circle" : "xmark";
-  const android =
-    tone === "success" ? "checkmark" : tone === "cancelled" ? "ellipse-outline" : "close";
-  const color =
-    tone === "success"
-      ? tokens.foreground
-      : tone === "cancelled"
-        ? tokens.mutedForeground
-        : tokens.destructive;
-  return <NativeSymbol ios={ios} android={android} size={14} color={color} />;
+  if (tone === "cancelled") {
+    return { backgroundColor: tokens.muted, color: tokens.mutedForeground };
+  }
+  return { backgroundColor: `${String(tokens.success)}26`, color: tokens.success };
 }
 
 export function AgentRunCard({
@@ -74,8 +60,12 @@ export function AgentRunCard({
   status,
   statusLabel,
   testID,
+  prLine,
+  fileStats,
+  filesLabel,
   lines,
   links,
+  actions,
   onLongPress,
   accessibilityActions,
   onAccessibilityAction,
@@ -86,8 +76,12 @@ export function AgentRunCard({
   status: string;
   statusLabel: string;
   testID: string;
+  prLine?: string;
+  fileStats?: AgentRunFileStats;
+  filesLabel?: string;
   lines?: Array<string | undefined>;
   links?: AgentRunLink[];
+  actions?: AgentRunAction[];
   onLongPress?: PressableProps["onLongPress"];
   accessibilityActions?: ViewProps["accessibilityActions"];
   onAccessibilityAction?: ViewProps["onAccessibilityAction"];
@@ -96,73 +90,185 @@ export function AgentRunCard({
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const summaryText = oneLineSummary(summary);
-  const pending = tone === "cancelled";
-  const detailLines = uniqueLines(lines?.some(Boolean) ? lines : [summaryText]);
+  const prText = oneLineSummary(prLine);
+  const showFiles = hasFileStats(fileStats);
+  const detailLines = uniqueLines(lines?.some(Boolean) ? lines : [prText, filesLabel, summaryText]);
   const detailLinks = links ?? [];
+  const cardActions = actions ?? [];
+  const pill = pillColors(tone, tokens);
 
   return (
     <>
-      <Pressable
+      <View
         testID={testID}
-        accessibilityRole="button"
-        accessibilityLabel={`${title}: ${statusLabel}`}
         accessibilityValue={{ text: status }}
-        accessibilityState={{ expanded: open }}
-        onPress={() => setOpen(true)}
-        onLongPress={onLongPress}
-        accessibilityActions={accessibilityActions}
-        onAccessibilityAction={onAccessibilityAction}
         style={{
-          height: AGENT_RUN_CARD_HEIGHT_PX,
           maxWidth: AGENT_RUN_CARD_WIDTH_PX,
           width: "100%",
           alignSelf: "flex-start",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 10,
+          gap: 12,
           overflow: "hidden",
-          borderRadius: 8,
-          backgroundColor: tokens.background,
-          paddingHorizontal: 12,
+          borderRadius: 16,
+          backgroundColor: tokens.secondary,
+          padding: 16,
         }}
       >
-        <View
-          style={{
-            width: 14,
-            height: 14,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${title}: ${statusLabel}`}
+          accessibilityState={{ expanded: open }}
+          onPress={() => setOpen(true)}
+          onLongPress={onLongPress}
+          accessibilityActions={accessibilityActions}
+          onAccessibilityAction={onAccessibilityAction}
+          style={{ gap: 8 }}
         >
-          <StatusGlyph tone={tone} label={statusLabel} tokens={tokens} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{
-              color: pending ? tokens.mutedForeground : tokens.foreground,
-              fontSize: 13.5,
-              fontWeight: "600",
-              lineHeight: 18,
-              height: 18,
-            }}
-          >
-            {title}
-          </Text>
-          <Text
-            numberOfLines={1}
-            style={{
-              color: tokens.mutedForeground,
-              fontSize: 12,
-              lineHeight: 16,
-              height: 16,
-              marginTop: 2,
-            }}
-          >
-            {summaryText || " "}
-          </Text>
-        </View>
-      </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                flex: 1,
+                color: tokens.foreground,
+                fontSize: 15,
+                fontWeight: "600",
+                lineHeight: 20,
+              }}
+            >
+              {title}
+            </Text>
+            <View
+              accessibilityRole="text"
+              accessibilityLabel={statusLabel}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                borderRadius: 999,
+                backgroundColor: pill.backgroundColor,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: pill.color,
+                }}
+              />
+              <Text style={{ color: pill.color, fontSize: 12, fontWeight: "500" }}>
+                {statusLabel}
+              </Text>
+            </View>
+          </View>
+          {prText ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <NativeSymbol
+                ios="arrow.triangle.pull"
+                android="git-pull-request"
+                size={14}
+                color={tokens.mutedForeground}
+              />
+              <Text
+                numberOfLines={1}
+                style={{ flex: 1, color: tokens.mutedForeground, fontSize: 13, lineHeight: 16 }}
+              >
+                {prText}
+              </Text>
+            </View>
+          ) : null}
+          {showFiles ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={{ color: tokens.mutedForeground, fontSize: 13 }}>±</Text>
+              {filesLabel ? (
+                <Text
+                  numberOfLines={1}
+                  style={{ flexShrink: 1, color: tokens.mutedForeground, fontSize: 13 }}
+                >
+                  {filesLabel}
+                </Text>
+              ) : null}
+              {fileStats?.additions != null ? (
+                <Text style={{ color: tokens.success, fontSize: 13 }}>+{fileStats.additions}</Text>
+              ) : null}
+              {fileStats?.deletions != null ? (
+                <Text style={{ color: tokens.destructive, fontSize: 13 }}>
+                  -{fileStats.deletions}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+          {summaryText && !prText ? (
+            <Text
+              numberOfLines={1}
+              style={{ color: tokens.mutedForeground, fontSize: 13, lineHeight: 16, height: 16 }}
+            >
+              {summaryText}
+            </Text>
+          ) : null}
+        </Pressable>
+        {cardActions.length > 0 ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {cardActions.map((action) => {
+              const primary = action.kind === "primary";
+              return (
+                <Pressable
+                  key={action.href}
+                  accessibilityRole="link"
+                  accessibilityLabel={action.label}
+                  onPress={() => Linking.openURL(action.href).catch(() => undefined)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    borderRadius: 8,
+                    borderWidth: primary ? 0 : 1,
+                    borderColor: tokens.border,
+                    backgroundColor: primary ? tokens.primary : "transparent",
+                    paddingHorizontal: 10,
+                    paddingVertical: 7,
+                  }}
+                >
+                  {primary ? (
+                    <>
+                      <Text
+                        style={{ color: tokens.primaryForeground, fontSize: 13, fontWeight: "500" }}
+                      >
+                        {action.label}
+                      </Text>
+                      <NativeSymbol
+                        ios="arrow.up.right"
+                        android="open-outline"
+                        size={14}
+                        color={tokens.primaryForeground}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <NativeSymbol
+                        ios="globe"
+                        android="globe-outline"
+                        size={14}
+                        color={tokens.foreground}
+                      />
+                      <Text style={{ color: tokens.foreground, fontSize: 13, fontWeight: "500" }}>
+                        {action.label}
+                      </Text>
+                      <NativeSymbol
+                        ios="chevron.down"
+                        android="chevron-down"
+                        size={14}
+                        color={tokens.foreground}
+                      />
+                    </>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+      </View>
       <Modal
         visible={open}
         animationType="slide"
@@ -244,12 +350,12 @@ export function CloudAgentCard({
   const title = block.title || t("Cloud agent");
   const statusLabel =
     block.status === "running"
-      ? t("running")
+      ? t("Running")
       : block.status === "finished"
-        ? t("finished")
+        ? t("Done")
         : block.status === "cancelled"
-          ? t("cancelled")
-          : t("failed");
+          ? t("Cancelled")
+          : t("Failed");
   const tone: AgentRunTone =
     block.status === "running"
       ? "running"
@@ -260,24 +366,40 @@ export function CloudAgentCard({
           : "failed";
   const prHref = cloudAgentHttpsUrl(block.prUrl);
   const agentHref = cloudAgentHttpsUrl(block.url);
-  const summary = prHref ? t("Pull request") : oneLineSummary(block.branch) || t("Cloud agent");
-  const links: AgentRunLink[] = [];
-  if (prHref) links.push({ href: prHref, label: t("Pull request") });
-  if (agentHref && agentHref !== prHref) links.push({ href: agentHref, label: t("Open") });
+  const prNumber = pullRequestNumberFromUrl(prHref);
+  const prLabel = prNumber != null ? t("PR #{number}", { number: prNumber }) : undefined;
+  const prLine = [oneLineSummary(block.branch), prLabel].filter(Boolean).join(" ");
+  const filesChanged = block.filesChanged;
+  const filesLabel =
+    filesChanged != null ? t("{count} files changed", { count: filesChanged }) : undefined;
+  const fileStats: AgentRunFileStats | undefined =
+    filesChanged != null || block.additions != null || block.deletions != null
+      ? {
+          ...(filesChanged != null ? { filesChanged } : {}),
+          ...(block.additions != null ? { additions: block.additions } : {}),
+          ...(block.deletions != null ? { deletions: block.deletions } : {}),
+        }
+      : undefined;
+  const actions: AgentRunAction[] = [];
+  if (prHref) actions.push({ href: prHref, label: t("View PR"), kind: "primary" });
+  if (agentHref && agentHref !== prHref) {
+    actions.push({ href: agentHref, label: t("Open in Web"), kind: "secondary" });
+  }
 
   return (
-    <AgentRunStack kind="agent">
-      <AgentRunCard
-        testID="cloud-agent-card"
-        title={title}
-        summary={summary}
-        tone={tone}
-        status={block.status}
-        statusLabel={statusLabel}
-        lines={[block.branch]}
-        links={links}
-      />
-    </AgentRunStack>
+    <AgentRunCard
+      testID="cloud-agent-card"
+      title={title}
+      tone={tone}
+      status={block.status}
+      statusLabel={statusLabel}
+      prLine={prLine}
+      fileStats={fileStats}
+      filesLabel={filesLabel}
+      lines={[block.branch, prLabel, filesLabel]}
+      links={actions}
+      actions={actions}
+    />
   );
 }
 
@@ -294,34 +416,26 @@ export function SubagentCard({
 }) {
   const { t } = useI18n();
   const statusLabel =
-    block.status === "running"
-      ? t("Running")
-      : block.status === "failed"
-        ? t("Failed")
-        : t("Completed");
+    block.status === "running" ? t("Running") : block.status === "failed" ? t("Failed") : t("Done");
   const tone: AgentRunTone =
     block.status === "running" ? "running" : block.status === "completed" ? "success" : "failed";
   const title = oneLineSummary(block.task) || block.name || t("subagent");
   const summary =
-    block.status === "running"
-      ? joinDetail([block.progress, block.name !== title ? block.name : undefined])
-      : joinDetail([block.result || block.progress, block.name !== title ? block.name : undefined]);
+    block.status === "running" ? oneLineSummary(block.progress) : oneLineSummary(block.result);
 
   return (
-    <AgentRunStack>
-      <AgentRunCard
-        testID="subagent-card"
-        title={title}
-        summary={summary}
-        tone={tone}
-        status={block.status}
-        statusLabel={statusLabel}
-        lines={[block.task !== title ? block.task : undefined, block.progress, block.result]}
-        accessibilityActions={accessibilityActions}
-        onAccessibilityAction={onAccessibilityAction}
-        onLongPress={onLongPress}
-      />
-    </AgentRunStack>
+    <AgentRunCard
+      testID="subagent-card"
+      title={title}
+      summary={summary}
+      tone={tone}
+      status={block.status}
+      statusLabel={statusLabel}
+      lines={[block.task !== title ? block.task : undefined, block.progress, block.result]}
+      accessibilityActions={accessibilityActions}
+      onAccessibilityAction={onAccessibilityAction}
+      onLongPress={onLongPress}
+    />
   );
 }
 
@@ -349,10 +463,10 @@ export function AgentRunStack({
         maxWidth: AGENT_RUN_CARD_WIDTH_PX,
         width: "100%",
         alignSelf: "flex-start",
-        gap: stacked ? 6 : 0,
-        borderRadius: 12,
-        backgroundColor: tokens.accent,
-        padding: stacked ? 6 : 4,
+        gap: stacked ? 8 : 0,
+        borderRadius: stacked ? 16 : 0,
+        backgroundColor: stacked ? tokens.accent : "transparent",
+        padding: stacked ? 8 : 0,
       }}
     >
       {heading ? (

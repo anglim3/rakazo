@@ -35,11 +35,14 @@ const cloudRunning: Extract<MessageBlock, { kind: "cloud_agent" }> = {
 const cloudFinished: Extract<MessageBlock, { kind: "cloud_agent" }> = {
   kind: "cloud_agent",
   agentId: "emu-finished",
-  title: "Add a README",
+  title: "Sandbox MCP filesystem paths (#13)",
   status: "finished",
   url: "https://cursor.com/agents/abc",
-  branch: "emulator/task",
-  prUrl: "https://github.com/example/demo/pull/1",
+  branch: "cursor/mcp-path-allowlist-3a30",
+  prUrl: "https://github.com/example/demo/pull/24",
+  filesChanged: 6,
+  additions: 487,
+  deletions: 6,
 };
 
 const subagentRunning: Extract<MessageBlock, { kind: "subagent" }> = {
@@ -171,7 +174,7 @@ function CurrentGallery() {
             summary="Searching files · Explore"
             tone="running"
             status="running"
-            statusLabel="running"
+            statusLabel="Running"
           />
           <AgentRunCard
             testId="stack-running-b"
@@ -179,7 +182,7 @@ function CurrentGallery() {
             summary="Writing summary · Writer"
             tone="running"
             status="running"
-            statusLabel="running"
+            statusLabel="Running"
           />
           <AgentRunCard
             testId="stack-running-c"
@@ -187,7 +190,7 @@ function CurrentGallery() {
             summary="Reading strings · Review"
             tone="running"
             status="running"
-            statusLabel="running"
+            statusLabel="Running"
           />
           <AgentRunCard
             testId="stack-pending"
@@ -195,7 +198,7 @@ function CurrentGallery() {
             summary="Pending · Review"
             tone="cancelled"
             status="cancelled"
-            statusLabel="cancelled"
+            statusLabel="Cancelled"
           />
         </AgentRunStack>
       </Shot>

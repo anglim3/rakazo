@@ -102,6 +102,10 @@ msgstr "{botName} adlı botun bilgisayarı"
 msgid "{days}d ago"
 msgstr "{days} g önce"
 
+#: src/components/CloudAgentCard.tsx:36
+msgid "{filesChanged} files changed"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:138
 msgid "{hours}h ago"
 msgstr "{hours} sa önce"
@@ -2636,6 +2640,10 @@ msgstr ""
 msgid "Open in full window"
 msgstr "Tam pencerede aç"
 
+#: src/components/CloudAgentCard.tsx:48
+msgid "Open in Web"
+msgstr ""
+
 #: src/pages/Shell.tsx:3089
 msgid "Open navigation"
 msgstr "Gezinmeyi aç"
@@ -2756,6 +2764,10 @@ msgstr "Çalınıyor…"
 
 #: src/pages/RoutineEditor.tsx:600
 msgid "POST to"
+msgstr ""
+
+#: src/components/CloudAgentCard.tsx:33
+msgid "PR #{prNumber}"
 msgstr ""
 
 #. placeholder {0}: props.name
@@ -3733,6 +3745,10 @@ msgstr "Doğrula ve ekle"
 #: src/pages/PluginsOverlay.tsx:1090
 msgid "Verifying…"
 msgstr "Doğrulanıyor…"
+
+#: src/components/CloudAgentCard.tsx:46
+msgid "View PR"
+msgstr ""
 
 #: src/pages/SettingsOverlay.tsx:86
 #: src/pages/Shell.tsx:5138

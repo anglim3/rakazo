@@ -1,4 +1,5 @@
 import {
+  buttonVariants,
   cn,
   Dialog,
   DialogContent,
@@ -6,17 +7,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@rakazo/ui-web";
-import { Check, ChevronDown, Circle, X } from "lucide-react";
+import { ArrowUpRight, ChevronDown, GitPullRequest, Globe } from "lucide-react";
 import type { ReactNode } from "react";
 import { Children, useState } from "react";
 
 export type AgentRunTone = "running" | "success" | "failed" | "cancelled";
 export type AgentRunLink = { href: string; label: string };
+export type AgentRunAction = AgentRunLink & { kind: "primary" | "secondary" };
+export type AgentRunFileStats = {
+  filesChanged?: number;
+  additions?: number;
+  deletions?: number;
+};
 
-export const AGENT_RUN_CARD_WIDTH_PX = 360;
-export const AGENT_RUN_CARD_HEIGHT_PX = 52;
+export const AGENT_RUN_CARD_WIDTH_PX = 512;
 
-const SPOKE_OPACITIES = [0.2, 0.3, 0.4, 0.5, 0.62, 0.75, 0.88, 1] as const;
+function hasFileStats(stats: AgentRunFileStats | undefined): boolean {
+  return (
+    stats != null &&
+    (stats.filesChanged != null || stats.additions != null || stats.deletions != null)
+  );
+}
 
 export function oneLineSummary(value: string | undefined): string {
   return value?.replace(/\s+/g, " ").trim() ?? "";
@@ -38,58 +49,31 @@ function uniqueLines(lines: Array<string | undefined>): string[] {
   return result;
 }
 
-function SpokeSpinner({ label }: { label: string }) {
+function pillClass(tone: AgentRunTone): string {
+  if (tone === "failed") return "bg-destructive/15 text-destructive";
+  if (tone === "cancelled") return "bg-muted text-muted-foreground";
+  return "bg-success/15 text-success";
+}
+
+function StatusPill({ tone, label }: { tone: AgentRunTone; label: string }) {
   return (
     <span
       role="status"
       aria-label={label}
-      className="relative size-3.5 shrink-0 motion-safe:animate-spin motion-reduce:animate-none"
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
+        pillClass(tone),
+      )}
     >
-      {SPOKE_OPACITIES.map((opacity, index) => (
-        <span
-          key={opacity}
-          className="absolute top-1/2 left-1/2 h-1.5 w-0.5 rounded-full bg-foreground"
-          style={{
-            opacity,
-            transform: `translate(-50%, -50%) rotate(${index * 45}deg) translateY(-4.5px)`,
-          }}
-        />
-      ))}
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full bg-current",
+          tone === "running" && "motion-safe:animate-pulse",
+        )}
+      />
+      {label}
     </span>
-  );
-}
-
-function StatusGlyph({ tone, label }: { tone: AgentRunTone; label: string }) {
-  if (tone === "running") {
-    return <SpokeSpinner label={label} />;
-  }
-  if (tone === "success") {
-    return (
-      <Check
-        role="status"
-        aria-label={label}
-        className="size-3.5 shrink-0 text-foreground"
-        strokeWidth={2}
-      />
-    );
-  }
-  if (tone === "cancelled") {
-    return (
-      <Circle
-        role="status"
-        aria-label={label}
-        className="size-3.5 shrink-0 text-muted-foreground"
-        strokeWidth={2}
-      />
-    );
-  }
-  return (
-    <X
-      role="status"
-      aria-label={label}
-      className="size-3.5 shrink-0 text-destructive"
-      strokeWidth={2}
-    />
   );
 }
 
@@ -147,6 +131,34 @@ function AgentRunWorkDialog({
   );
 }
 
+function ActionLink({ action }: { action: AgentRunAction }) {
+  const primary = action.kind === "primary";
+  return (
+    <a
+      href={action.href}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(
+        buttonVariants({ variant: primary ? "default" : "outline", size: "sm" }),
+        "no-underline",
+      )}
+    >
+      {primary ? (
+        <>
+          {action.label}
+          <ArrowUpRight className="size-3.5" strokeWidth={2} aria-hidden="true" />
+        </>
+      ) : (
+        <>
+          <Globe className="size-3.5" strokeWidth={2} aria-hidden="true" />
+          {action.label}
+          <ChevronDown className="size-3.5" strokeWidth={2} aria-hidden="true" />
+        </>
+      )}
+    </a>
+  );
+}
+
 export function AgentRunCard({
   title,
   summary,
@@ -154,8 +166,12 @@ export function AgentRunCard({
   status,
   statusLabel,
   testId,
+  prLine,
+  fileStats,
+  filesLabel,
   lines,
   links,
+  actions,
 }: {
   title: string;
   summary?: string;
@@ -163,49 +179,85 @@ export function AgentRunCard({
   status: string;
   statusLabel: string;
   testId: string;
+  prLine?: string;
+  fileStats?: AgentRunFileStats;
+  filesLabel?: string;
   lines?: Array<string | undefined>;
   links?: AgentRunLink[];
+  actions?: AgentRunAction[];
 }) {
   const [open, setOpen] = useState(false);
   const summaryText = oneLineSummary(summary);
-  const pending = tone === "cancelled";
-  const detailLines = uniqueLines(lines?.some(Boolean) ? lines : [summaryText]);
+  const prText = oneLineSummary(prLine);
+  const showFiles = hasFileStats(fileStats);
+  const detailLines = uniqueLines(lines?.some(Boolean) ? lines : [prText, filesLabel, summaryText]);
   const detailLinks = links ?? [];
+  const cardActions = actions ?? [];
 
   return (
     <>
-      <button
-        type="button"
+      <div
         data-slot="card"
         data-testid={testId}
         data-status={status}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-        className="flex h-[52px] w-[360px] max-w-full min-w-0 shrink-0 cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg bg-background px-3 text-left text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-[min(32rem,100%)] max-w-full min-w-0 flex-col gap-3 overflow-hidden rounded-2xl bg-secondary p-4 text-foreground"
       >
-        <span className="grid size-3.5 shrink-0 place-items-center">
-          <StatusGlyph tone={tone} label={statusLabel} />
-        </span>
-        <span className="min-w-0 flex-1 overflow-hidden">
-          <span
-            className={cn(
-              "block h-[18px] truncate text-[13.5px] leading-[18px] font-semibold",
-              pending ? "text-muted-foreground" : "text-foreground",
-            )}
-            dir="auto"
-          >
-            {title}
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+          className="flex min-w-0 cursor-pointer flex-col gap-2 overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="flex min-w-0 items-start justify-between gap-3">
+            <span
+              className="min-w-0 flex-1 truncate text-[15px] leading-5 font-semibold"
+              dir="auto"
+            >
+              {title}
+            </span>
+            <StatusPill tone={tone} label={statusLabel} />
           </span>
-          <span
-            className="mt-0.5 block h-4 truncate text-[12px] leading-4 text-muted-foreground"
-            dir="auto"
-            title={summaryText || undefined}
-          >
-            {summaryText || "\u00a0"}
-          </span>
-        </span>
-      </button>
+          {prText ? (
+            <span className="flex min-w-0 items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
+              <GitPullRequest className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+              <span className="min-w-0 truncate" dir="auto">
+                {prText}
+              </span>
+            </span>
+          ) : null}
+          {showFiles ? (
+            <span className="flex min-w-0 items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
+              <span aria-hidden="true" className="shrink-0">
+                ±
+              </span>
+              {filesLabel ? <span className="min-w-0 truncate">{filesLabel}</span> : null}
+              {fileStats?.additions != null ? (
+                <span className="shrink-0 text-success">{`+${fileStats.additions}`}</span>
+              ) : null}
+              {fileStats?.deletions != null ? (
+                <span className="shrink-0 text-destructive">{`-${fileStats.deletions}`}</span>
+              ) : null}
+            </span>
+          ) : null}
+          {summaryText && !prText ? (
+            <span
+              className="block h-4 truncate text-[13px] leading-4 text-muted-foreground"
+              dir="auto"
+              title={summaryText}
+            >
+              {summaryText}
+            </span>
+          ) : null}
+        </button>
+        {cardActions.length > 0 ? (
+          <div className="flex min-w-0 flex-wrap gap-2">
+            {cardActions.map((action) => (
+              <ActionLink key={action.href} action={action} />
+            ))}
+          </div>
+        ) : null}
+      </div>
       <AgentRunWorkDialog
         open={open}
         onOpenChange={setOpen}
@@ -227,8 +279,8 @@ export function AgentRunStack({ children, heading }: { children: ReactNode; head
     <div
       data-testid="agent-run-stack"
       className={cn(
-        "flex w-[360px] max-w-full flex-col rounded-xl bg-accent",
-        stacked ? "gap-1.5 p-1.5" : "p-1",
+        "flex w-[min(32rem,100%)] max-w-full flex-col",
+        stacked && "gap-2 rounded-2xl bg-accent p-2",
       )}
     >
       {label ? (

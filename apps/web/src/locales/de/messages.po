@@ -102,6 +102,10 @@ msgstr "Computer von {botName}"
 msgid "{days}d ago"
 msgstr "vor {days} T."
 
+#: src/components/CloudAgentCard.tsx:36
+msgid "{filesChanged} files changed"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:138
 msgid "{hours}h ago"
 msgstr "vor {hours} Std."
@@ -2636,6 +2640,10 @@ msgstr ""
 msgid "Open in full window"
 msgstr "In vollständigem Fenster öffnen"
 
+#: src/components/CloudAgentCard.tsx:48
+msgid "Open in Web"
+msgstr ""
+
 #: src/pages/Shell.tsx:3089
 msgid "Open navigation"
 msgstr "Navigation öffnen"
@@ -2756,6 +2764,10 @@ msgstr "Wiedergabe…"
 
 #: src/pages/RoutineEditor.tsx:600
 msgid "POST to"
+msgstr ""
+
+#: src/components/CloudAgentCard.tsx:33
+msgid "PR #{prNumber}"
 msgstr ""
 
 #. placeholder {0}: props.name
@@ -3733,6 +3745,10 @@ msgstr "Prüfen und hinzufügen"
 #: src/pages/PluginsOverlay.tsx:1090
 msgid "Verifying…"
 msgstr "Wird geprüft…"
+
+#: src/components/CloudAgentCard.tsx:46
+msgid "View PR"
+msgstr ""
 
 #: src/pages/SettingsOverlay.tsx:86
 #: src/pages/Shell.tsx:5138
