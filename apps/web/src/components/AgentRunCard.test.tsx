@@ -107,6 +107,12 @@ describe("AgentRunCard", () => {
     expect(withStats).toContain("text-destructive");
     expect(withStats).toContain("View PR");
     expect(withStats).toContain("Open in Web");
+    expect(withStats).toContain("rounded-md");
+    expect(withStats).toContain("border-border");
+    expect(withStats).toContain("bg-background");
+    expect(withStats).toContain("w-px");
+    expect(withStats).toContain("fill-current");
+    expect(withStats).not.toContain("bg-transparent");
     expect(withStats).toContain('href="https://github.com/example/demo/pull/24"');
     expect(withStats).toContain('href="https://cursor.com/agents/abc"');
     expect(withoutStats).not.toContain("files changed");

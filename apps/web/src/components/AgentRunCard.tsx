@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@rakazo/ui-web";
-import { ArrowUpRight, ChevronDown, GitPullRequest, Globe } from "lucide-react";
+import { ArrowUpRight, ChevronDown, GitPullRequest, Globe, Triangle } from "lucide-react";
 import type { ReactNode } from "react";
 import { Children, useState } from "react";
 
@@ -132,30 +132,37 @@ function AgentRunWorkDialog({
 }
 
 function ActionLink({ action }: { action: AgentRunAction }) {
-  const primary = action.kind === "primary";
+  if (action.kind === "primary") {
+    return (
+      <a
+        href={action.href}
+        target="_blank"
+        rel="noreferrer"
+        className={cn(
+          buttonVariants({ variant: "default", size: "default" }),
+          "rounded-md no-underline",
+        )}
+      >
+        {action.label}
+        <ArrowUpRight className="size-3.5" strokeWidth={2} aria-hidden="true" />
+      </a>
+    );
+  }
   return (
     <a
       href={action.href}
       target="_blank"
       rel="noreferrer"
-      className={cn(
-        buttonVariants({ variant: primary ? "default" : "outline", size: "default" }),
-        "no-underline",
-        !primary && "bg-transparent dark:bg-transparent",
-      )}
+      className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background text-sm font-medium text-foreground no-underline outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
     >
-      {primary ? (
-        <>
-          {action.label}
-          <ArrowUpRight className="size-3.5" strokeWidth={2} aria-hidden="true" />
-        </>
-      ) : (
-        <>
-          <Globe className="size-3.5" strokeWidth={2} aria-hidden="true" />
-          {action.label}
-          <ChevronDown className="size-3.5" strokeWidth={2} aria-hidden="true" />
-        </>
-      )}
+      <span className="inline-flex items-center gap-1.5 px-2.5">
+        <Globe className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+        {action.label}
+      </span>
+      <span className="w-px self-stretch bg-border" aria-hidden="true" />
+      <span className="inline-flex w-7 items-center justify-center" aria-hidden="true">
+        <Triangle className="size-2 rotate-180 fill-current" strokeWidth={0} />
+      </span>
     </a>
   );
 }
@@ -201,7 +208,7 @@ export function AgentRunCard({
         data-slot="card"
         data-testid={testId}
         data-status={status}
-        className="flex w-[512px] max-w-full min-w-0 flex-col gap-3 overflow-hidden rounded-2xl bg-secondary p-4 text-foreground"
+        className="flex w-[512px] max-w-full min-w-0 flex-col gap-3.5 overflow-hidden rounded-2xl bg-secondary p-4 text-foreground"
       >
         <button
           type="button"
@@ -219,35 +226,43 @@ export function AgentRunCard({
             </span>
             <StatusPill tone={tone} label={statusLabel} />
           </span>
-          {prText ? (
-            <span className="flex min-w-0 items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
-              <GitPullRequest className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-              <span className="min-w-0 truncate" dir="auto">
-                {prText}
-              </span>
-            </span>
-          ) : null}
-          {showFiles ? (
-            <span className="flex min-w-0 items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
-              <span aria-hidden="true" className="shrink-0">
-                ±
-              </span>
-              {filesLabel ? <span className="min-w-0 truncate">{filesLabel}</span> : null}
-              {fileStats?.additions != null ? (
-                <span className="shrink-0 text-success">{`+${fileStats.additions}`}</span>
+          {prText || showFiles || (summaryText && !prText) ? (
+            <span className="flex min-w-0 flex-col gap-1">
+              {prText ? (
+                <span className="flex min-w-0 items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
+                  <GitPullRequest
+                    className="size-3.5 shrink-0"
+                    strokeWidth={1.6}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 truncate" dir="auto">
+                    {prText}
+                  </span>
+                </span>
               ) : null}
-              {fileStats?.deletions != null ? (
-                <span className="shrink-0 text-destructive">{`-${fileStats.deletions}`}</span>
+              {showFiles ? (
+                <span className="flex min-w-0 items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
+                  <span aria-hidden="true" className="w-3.5 shrink-0 text-center text-[12px]">
+                    ±
+                  </span>
+                  {filesLabel ? <span className="min-w-0 truncate">{filesLabel}</span> : null}
+                  {fileStats?.additions != null ? (
+                    <span className="shrink-0 text-success">{`+${fileStats.additions}`}</span>
+                  ) : null}
+                  {fileStats?.deletions != null ? (
+                    <span className="shrink-0 text-destructive">{`-${fileStats.deletions}`}</span>
+                  ) : null}
+                </span>
               ) : null}
-            </span>
-          ) : null}
-          {summaryText && !prText ? (
-            <span
-              className="block h-4 truncate text-[13px] leading-4 text-muted-foreground"
-              dir="auto"
-              title={summaryText}
-            >
-              {summaryText}
+              {summaryText && !prText ? (
+                <span
+                  className="block h-4 truncate text-[13px] leading-4 text-muted-foreground"
+                  dir="auto"
+                  title={summaryText}
+                >
+                  {summaryText}
+                </span>
+              ) : null}
             </span>
           ) : null}
         </button>

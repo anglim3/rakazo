@@ -106,7 +106,7 @@ export function AgentRunCard({
           maxWidth: AGENT_RUN_CARD_WIDTH_PX,
           width: "100%",
           alignSelf: "flex-start",
-          gap: 12,
+          gap: 14,
           overflow: "hidden",
           borderRadius: 16,
           backgroundColor: tokens.secondary,
@@ -162,56 +162,98 @@ export function AgentRunCard({
               </Text>
             </View>
           </View>
-          {prText ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <NativeSymbol
-                ios="arrow.triangle.pull"
-                android="git-pull-request"
-                size={14}
-                color={tokens.mutedForeground}
-              />
-              <Text
-                numberOfLines={1}
-                style={{ flex: 1, color: tokens.mutedForeground, fontSize: 13, lineHeight: 16 }}
-              >
-                {prText}
-              </Text>
-            </View>
-          ) : null}
-          {showFiles ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ color: tokens.mutedForeground, fontSize: 13 }}>±</Text>
-              {filesLabel ? (
+          {prText || showFiles || (summaryText && !prText) ? (
+            <View style={{ gap: 4 }}>
+              {prText ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <NativeSymbol
+                    ios="arrow.triangle.pull"
+                    android="git-pull-request"
+                    size={14}
+                    color={tokens.mutedForeground}
+                  />
+                  <Text
+                    numberOfLines={1}
+                    style={{ flex: 1, color: tokens.mutedForeground, fontSize: 13, lineHeight: 16 }}
+                  >
+                    {prText}
+                  </Text>
+                </View>
+              ) : null}
+              {showFiles ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={{ color: tokens.mutedForeground, fontSize: 12, width: 14 }}>±</Text>
+                  {filesLabel ? (
+                    <Text
+                      numberOfLines={1}
+                      style={{ flexShrink: 1, color: tokens.mutedForeground, fontSize: 13 }}
+                    >
+                      {filesLabel}
+                    </Text>
+                  ) : null}
+                  {fileStats?.additions != null ? (
+                    <Text style={{ color: tokens.success, fontSize: 13 }}>
+                      +{fileStats.additions}
+                    </Text>
+                  ) : null}
+                  {fileStats?.deletions != null ? (
+                    <Text style={{ color: tokens.destructive, fontSize: 13 }}>
+                      -{fileStats.deletions}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {summaryText && !prText ? (
                 <Text
                   numberOfLines={1}
-                  style={{ flexShrink: 1, color: tokens.mutedForeground, fontSize: 13 }}
+                  style={{
+                    color: tokens.mutedForeground,
+                    fontSize: 13,
+                    lineHeight: 16,
+                    height: 16,
+                  }}
                 >
-                  {filesLabel}
-                </Text>
-              ) : null}
-              {fileStats?.additions != null ? (
-                <Text style={{ color: tokens.success, fontSize: 13 }}>+{fileStats.additions}</Text>
-              ) : null}
-              {fileStats?.deletions != null ? (
-                <Text style={{ color: tokens.destructive, fontSize: 13 }}>
-                  -{fileStats.deletions}
+                  {summaryText}
                 </Text>
               ) : null}
             </View>
-          ) : null}
-          {summaryText && !prText ? (
-            <Text
-              numberOfLines={1}
-              style={{ color: tokens.mutedForeground, fontSize: 13, lineHeight: 16, height: 16 }}
-            >
-              {summaryText}
-            </Text>
           ) : null}
         </Pressable>
         {cardActions.length > 0 ? (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {cardActions.map((action) => {
               const primary = action.kind === "primary";
+              if (primary) {
+                return (
+                  <Pressable
+                    key={action.href}
+                    accessibilityRole="link"
+                    accessibilityLabel={action.label}
+                    onPress={() => Linking.openURL(action.href).catch(() => undefined)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      borderRadius: 6,
+                      backgroundColor: tokens.primary,
+                      paddingHorizontal: 10,
+                      paddingVertical: 7,
+                    }}
+                  >
+                    <Text
+                      style={{ color: tokens.primaryForeground, fontSize: 13, fontWeight: "500" }}
+                    >
+                      {action.label}
+                    </Text>
+                    <NativeSymbol
+                      ios="arrow.up.right"
+                      android="open-outline"
+                      size={14}
+                      color={tokens.primaryForeground}
+                    />
+                  </Pressable>
+                );
+              }
               return (
                 <Pressable
                   key={action.href}
@@ -220,49 +262,42 @@ export function AgentRunCard({
                   onPress={() => Linking.openURL(action.href).catch(() => undefined)}
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    borderRadius: 8,
-                    borderWidth: primary ? 0 : 1,
+                    alignItems: "stretch",
+                    overflow: "hidden",
+                    borderRadius: 6,
+                    borderWidth: 1,
                     borderColor: tokens.border,
-                    backgroundColor: primary ? tokens.primary : "transparent",
-                    paddingHorizontal: 10,
-                    paddingVertical: 7,
+                    backgroundColor: tokens.background,
                   }}
                 >
-                  {primary ? (
-                    <>
-                      <Text
-                        style={{ color: tokens.primaryForeground, fontSize: 13, fontWeight: "500" }}
-                      >
-                        {action.label}
-                      </Text>
-                      <NativeSymbol
-                        ios="arrow.up.right"
-                        android="open-outline"
-                        size={14}
-                        color={tokens.primaryForeground}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <NativeSymbol
-                        ios="globe"
-                        android="globe-outline"
-                        size={14}
-                        color={tokens.foreground}
-                      />
-                      <Text style={{ color: tokens.foreground, fontSize: 13, fontWeight: "500" }}>
-                        {action.label}
-                      </Text>
-                      <NativeSymbol
-                        ios="chevron.down"
-                        android="chevron-down"
-                        size={14}
-                        color={tokens.foreground}
-                      />
-                    </>
-                  )}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 10,
+                      paddingVertical: 7,
+                    }}
+                  >
+                    <NativeSymbol
+                      ios="globe"
+                      android="globe-outline"
+                      size={14}
+                      color={tokens.foreground}
+                    />
+                    <Text style={{ color: tokens.foreground, fontSize: 13, fontWeight: "500" }}>
+                      {action.label}
+                    </Text>
+                  </View>
+                  <View style={{ width: 1, backgroundColor: tokens.border }} />
+                  <View style={{ width: 28, alignItems: "center", justifyContent: "center" }}>
+                    <NativeSymbol
+                      ios="arrowtriangle.down.fill"
+                      android="caret-down"
+                      size={10}
+                      color={tokens.foreground}
+                    />
+                  </View>
                 </Pressable>
               );
             })}

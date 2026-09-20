@@ -55,7 +55,7 @@ export const darkTokens = {
   popoverForeground: "#ECECEE",
   primary: "#F1F1EF",
   primaryForeground: "#0B0C0E",
-  secondary: "#18191E",
+  secondary: "#262626",
   secondaryForeground: "#ECECEE",
   chatUser: "#22242B",
   chatUserForeground: "#ECECEE",
