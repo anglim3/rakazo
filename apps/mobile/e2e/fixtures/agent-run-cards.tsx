@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { CloudAgentCard, SubagentCard } from "../../components/AgentRunCard";
+import { ThreadAgentRunBlock } from "../../components/AgentRunCard";
 import { setAppearancePreference } from "../../lib/appearance";
 import { useMobileTokens } from "../../lib/native";
 
@@ -59,6 +59,7 @@ const subagentCompleted: Extract<MessageBlock, { kind: "subagent" }> = {
   name: "Explore",
   task: "Map the message card layout in Shell and mobile",
   status: "completed",
+  progress: LONG_PROGRESS,
   result: "Cards should stay compact with a status mark.",
 };
 
@@ -107,16 +108,16 @@ function DemoApp() {
         </Text>
       </Pressable>
       <Case id="shot-subagent-running" label="Local subagent · running">
-        <SubagentCard block={subagentRunning} />
+        <ThreadAgentRunBlock block={subagentRunning} />
       </Case>
       <Case id="shot-subagent-completed" label="Local subagent · completed">
-        <SubagentCard block={subagentCompleted} />
+        <ThreadAgentRunBlock block={subagentCompleted} />
       </Case>
       <Case id="shot-cloud-finished" label="Cloud agent · with PR">
-        <CloudAgentCard block={cloudFinished} />
+        <ThreadAgentRunBlock block={cloudFinished} />
       </Case>
       <Case id="shot-cloud-running" label="Cloud agent · no PR">
-        <CloudAgentCard block={cloudRunning} />
+        <ThreadAgentRunBlock block={cloudRunning} />
       </Case>
     </ScrollView>
   );

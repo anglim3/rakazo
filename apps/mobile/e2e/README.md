@@ -8,11 +8,13 @@ The real React Native `AgentRunCard` (Expo web via react-native-web) can be open
 pnpm --filter @rakazo/mobile demo:agent-cards
 ```
 
-Equivalent: `pnpm --filter @rakazo/web demo:mobile-agent-cards`. Capture the docs shots with:
+Equivalent: `pnpm --filter @rakazo/web demo:mobile-agent-cards`. Capture docs shots from the real `ThreadAgentRunBlock` (same tree as `apps/mobile/app/thread.tsx`):
 
 ```sh
 UPDATE_AGENT_CARD_DOCS=1 pnpm --filter @rakazo/web e2e:mobile-agent-cards
 ```
+
+Writes `docs/subagent-card/mobile-subagent-running.png`, `mobile-subagent-open.png`, `mobile-cloud-finished.png`, plus `-light` variants.
 
 This opt-in [Maestro](https://maestro.mobile.dev/) flow exercises sign-in, bot creation,
 thread messaging, and computer takeover/release on a real Android emulator or iOS simulator. It

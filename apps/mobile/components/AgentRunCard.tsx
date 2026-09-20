@@ -519,6 +519,30 @@ export function CloudAgentCard({
   );
 }
 
+export function ThreadAgentRunBlock({
+  block,
+  accessibilityActions,
+  onAccessibilityAction,
+  onLongPress,
+}: {
+  block: Extract<MessageBlock, { kind: "subagent" | "cloud_agent" }>;
+  accessibilityActions?: ViewProps["accessibilityActions"];
+  onAccessibilityAction?: ViewProps["onAccessibilityAction"];
+  onLongPress?: PressableProps["onLongPress"];
+}) {
+  if (block.kind === "subagent") {
+    return (
+      <SubagentCard
+        block={block}
+        accessibilityActions={accessibilityActions}
+        onAccessibilityAction={onAccessibilityAction}
+        onLongPress={onLongPress}
+      />
+    );
+  }
+  return <CloudAgentCard block={block} />;
+}
+
 export function SubagentCard({
   block,
   accessibilityActions,

@@ -55,7 +55,7 @@ import {
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CloudAgentCard, SubagentCard } from "../components/AgentRunCard";
+import { ThreadAgentRunBlock } from "../components/AgentRunCard";
 import { AppConnectCard } from "../components/AppConnectCard";
 import { AskActions } from "../components/AskActions";
 import { BotAvatar } from "../components/bot-avatar";
@@ -2408,18 +2408,15 @@ const MessageBubble = memo(function MessageBubble({
     (block) =>
       block.kind === "subagent" || block.kind === "child_bot" || block.kind === "cloud_agent",
   );
-  if (special?.kind === "subagent") {
+  if (special?.kind === "subagent" || special?.kind === "cloud_agent") {
     return (
-      <SubagentCard
+      <ThreadAgentRunBlock
         block={special}
         accessibilityActions={actionProps.accessibilityActions}
         onAccessibilityAction={actionProps.onAccessibilityAction}
         onLongPress={actionProps.onLongPress}
       />
     );
-  }
-  if (special?.kind === "cloud_agent") {
-    return <CloudAgentCard block={special} />;
   }
   if (special?.kind === "child_bot") {
     const removed = special.status === "deleted" || special.status === "archived";
