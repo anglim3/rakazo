@@ -5,6 +5,7 @@ import type { MessageBlock } from "@rakazo/contracts";
 import { Badge } from "@rakazo/ui-web/components/ui/badge";
 import { Card, CardContent } from "@rakazo/ui-web/components/ui/card";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AgentRunCard, AgentRunStack } from "../../src/components/AgentRunCard";
 import { CloudAgentCard } from "../../src/components/CloudAgentCard";
@@ -149,24 +150,33 @@ function Shot({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
+function Case({ label, id, children }: { label: string; id: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1">
+      <h2 className="px-3 text-[12px] font-medium text-muted-foreground">{label}</h2>
+      <Shot id={id}>{children}</Shot>
+    </section>
+  );
+}
+
 function CurrentGallery() {
   const { t } = useLingui();
   const stackCount = 4;
   return (
     <>
-      <Shot id="shot-cloud-running">
-        <CloudAgentCard block={cloudRunning} />
-      </Shot>
-      <Shot id="shot-cloud-finished">
-        <CloudAgentCard block={cloudFinished} />
-      </Shot>
-      <Shot id="shot-subagent-running">
+      <Case id="shot-subagent-running" label="Local subagent · running">
         <SubagentCard block={subagentRunning} />
-      </Shot>
-      <Shot id="shot-subagent-completed">
+      </Case>
+      <Case id="shot-subagent-completed" label="Local subagent · completed">
         <SubagentCard block={subagentCompleted} />
-      </Shot>
-      <Shot id="shot-stack">
+      </Case>
+      <Case id="shot-cloud-finished" label="Cloud agent · with PR">
+        <CloudAgentCard block={cloudFinished} />
+      </Case>
+      <Case id="shot-cloud-running" label="Cloud agent · no PR">
+        <CloudAgentCard block={cloudRunning} />
+      </Case>
+      <Case id="shot-stack" label="Stacked local subagents">
         <AgentRunStack heading={t`Started ${stackCount} subagents`}>
           <AgentRunCard
             testId="stack-running-a"
@@ -205,7 +215,7 @@ function CurrentGallery() {
             actions={[{ label: t`Open`, kind: "primary" }]}
           />
         </AgentRunStack>
-      </Shot>
+      </Case>
     </>
   );
 }
@@ -227,10 +237,33 @@ const legacyGallery = (
   </>
 );
 
-createRoot(document.getElementById("root")!).render(
-  <I18nProvider i18n={i18n}>
+function DemoApp() {
+  const [theme, setTheme] = useState(params.get("theme") === "light" ? "light" : "dark");
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
+
+  return (
     <main className="flex min-h-screen flex-col gap-6 bg-background p-8 text-foreground">
+      {gallery === "current" ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="text-[13px] text-muted-foreground"
+            onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+          >
+            {theme === "dark" ? "Light" : "Dark"}
+          </button>
+        </div>
+      ) : null}
       {gallery === "legacy" ? legacyGallery : <CurrentGallery />}
     </main>
+  );
+}
+
+createRoot(document.getElementById("root")!).render(
+  <I18nProvider i18n={i18n}>
+    <DemoApp />
   </I18nProvider>,
 );

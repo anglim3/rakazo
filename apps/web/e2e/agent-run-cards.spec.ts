@@ -1,6 +1,6 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import type { TestInfo } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { captureScreenshot } from "./helpers";
@@ -227,4 +227,38 @@ test("legacy agent cards remain available for visual comparison", async ({ page 
       }
     }
   }
+});
+
+test("standalone docs demo page is clickable without the app", async ({ page }, testInfo) => {
+  const demo = path.resolve(
+    fileURLToPath(new URL("../../../docs/subagent-card/demo.html", import.meta.url)),
+  );
+  await page.goto(pathToFileURL(demo).href);
+
+  const subagent = page.getByTestId("subagent-card");
+  const cloud = page.getByTestId("cloud-agent-card");
+  await expect(subagent).toHaveCount(2);
+  await expect(cloud).toHaveCount(2);
+  await expect(subagent.getByRole("link", { name: "View PR" })).toHaveCount(0);
+  await expect(subagent.getByRole("button", { name: "Open", exact: true })).toHaveCount(2);
+
+  const runningCloud = page.locator('[data-testid="cloud-agent-card"][data-status="running"]');
+  const finishedCloud = page.locator('[data-testid="cloud-agent-card"][data-status="finished"]');
+  await expect(runningCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
+  await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
+  await expect(finishedCloud.getByRole("link", { name: "View PR" })).toBeVisible();
+  await expect(finishedCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
+
+  await subagent.first().getByTestId("agent-run-open").click();
+  const dialog = page.locator("dialog[open]");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Prompt" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Progress" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Result" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+
+  const demoPath = testInfo.outputPath("after-demo-dark.png");
+  await page.screenshot({ animations: "disabled", path: demoPath, fullPage: true });
+  await saveShot(testInfo, "after-demo-dark", demoPath);
 });

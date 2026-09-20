@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "demo:agent-cards": "vite --open /e2e/fixtures/agent-run-cards.html",
     "build": "cross-env NODE_ENV=production vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit -p tsconfig.json",
