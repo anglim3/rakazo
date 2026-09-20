@@ -53,6 +53,8 @@ export const RU_MESSAGES: Record<string, string> = {
   "Updating {name}’s Computer": "Обновление компьютера {name}",
   "Workers and operations are stopped": "Воркеры и операции остановлены",
   "Cloud agent": "Облачный агент",
+  Close: "Закрыть",
+  Open: "Открыть",
   "Pull request": "Запрос на слияние",
   running: "выполняется",
   finished: "завершено",

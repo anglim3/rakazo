@@ -32,6 +32,7 @@ export function SubagentCard({ block }: { block: Extract<MessageBlock, { kind: "
         tone={subagentTone(block.status)}
         status={block.status}
         statusLabel={statusLabel}
+        lines={[block.task !== title ? block.task : undefined, block.progress, block.result]}
       />
     </AgentRunStack>
   );

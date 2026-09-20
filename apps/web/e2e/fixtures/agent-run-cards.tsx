@@ -21,6 +21,9 @@ const i18n = setupI18n({ locale: "en", messages: {} });
 i18n.load("en", {});
 i18n.activate("en");
 
+const LONG_PROGRESS =
+  "Searching the thread renderer for the compact agent-status row, including Shell MessageView, the mobile thread, and the shared AgentRunCard shell so the muted secondary line stays one truncated row even while this progress text keeps growing.";
+
 const cloudRunning: Extract<MessageBlock, { kind: "cloud_agent" }> = {
   kind: "cloud_agent",
   agentId: "emu-running",
@@ -45,7 +48,7 @@ const subagentRunning: Extract<MessageBlock, { kind: "subagent" }> = {
   name: "Explore",
   task: "Map the message card layout in Shell and mobile",
   status: "running",
-  progress: "Searching the thread renderer",
+  progress: LONG_PROGRESS,
 };
 
 const subagentCompleted: Extract<MessageBlock, { kind: "subagent" }> = {

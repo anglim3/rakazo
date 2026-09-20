@@ -40,6 +40,8 @@ export const ZH_MESSAGES: Record<string, string> = {
   "Set up Executor on your server in the web app.": "请在网页应用中为服务器设置 Executor。",
 
   "Cloud agent": "云端智能体",
+  Close: "关闭",
+  Open: "打开",
   "Pull request": "拉取请求",
   running: "运行中",
   finished: "已完成",

@@ -19,10 +19,15 @@ test("renders a compact cloud agent card from an emulator launch", async ({ page
   await expect(card).toHaveAttribute("data-status", /running|finished/);
   await expect(card).toHaveAttribute("data-status", "finished", { timeout: 60_000 });
   await expect(card).toContainText("Pull request");
-  await expect(card.locator("..")).toHaveAttribute(
+  await card.click();
+  const dialog = page.getByTestId("agent-run-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Pull request" })).toHaveAttribute(
     "href",
     "https://github.com/example/demo/pull/1",
   );
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
   await captureScreenshot(page, testInfo, "cloud-agent-card");
 
   await expect

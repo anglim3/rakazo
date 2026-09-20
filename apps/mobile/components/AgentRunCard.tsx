@@ -1,15 +1,19 @@
 import type { MessageBlock } from "@rakazo/contracts";
 import { cloudAgentHttpsUrl } from "@rakazo/core";
 import type { ReactNode } from "react";
-import { Children } from "react";
+import { Children, useState } from "react";
 import type { PressableProps, ViewProps } from "react-native";
-import { ActivityIndicator, Linking, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useI18n } from "../lib/i18n";
 import { useMobileTokens } from "../lib/native";
 import { NativeSymbol } from "./native-symbol";
 
 export type AgentRunTone = "running" | "success" | "failed" | "cancelled";
 export type AgentRunStackKind = "subagent" | "agent";
+export type AgentRunLink = { href: string; label: string };
+
+export const AGENT_RUN_CARD_WIDTH_PX = 360;
+export const AGENT_RUN_CARD_HEIGHT_PX = 52;
 
 export function oneLineSummary(value: string | undefined): string {
   return value?.replace(/\s+/g, " ").trim() ?? "";
@@ -17,6 +21,18 @@ export function oneLineSummary(value: string | undefined): string {
 
 export function joinDetail(parts: Array<string | undefined>): string {
   return parts.map(oneLineSummary).filter(Boolean).join(" · ");
+}
+
+function uniqueLines(lines: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const line of lines) {
+    const text = line?.replace(/\s+/g, " ").trim();
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    result.push(text);
+  }
+  return result;
 }
 
 function StatusGlyph({
@@ -58,10 +74,9 @@ export function AgentRunCard({
   status,
   statusLabel,
   testID,
-  onPress,
+  lines,
+  links,
   onLongPress,
-  disabled,
-  accessibilityRole,
   accessibilityActions,
   onAccessibilityAction,
 }: {
@@ -71,86 +86,152 @@ export function AgentRunCard({
   status: string;
   statusLabel: string;
   testID: string;
-  onPress?: () => void;
+  lines?: Array<string | undefined>;
+  links?: AgentRunLink[];
   onLongPress?: PressableProps["onLongPress"];
-  disabled?: boolean;
-  accessibilityRole?: ViewProps["accessibilityRole"];
   accessibilityActions?: ViewProps["accessibilityActions"];
   onAccessibilityAction?: ViewProps["onAccessibilityAction"];
 }) {
   const tokens = useMobileTokens();
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
   const summaryText = oneLineSummary(summary);
   const pending = tone === "cancelled";
-  const body = (
-    <View
-      testID={testID}
-      accessibilityLabel={`${title}: ${statusLabel}`}
-      accessibilityValue={{ text: status }}
-      style={{
-        maxWidth: 360,
-        width: "100%",
-        alignSelf: "flex-start",
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 10,
-        borderRadius: 8,
-        backgroundColor: tokens.background,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-      }}
-    >
-      <View
-        style={{
-          width: 14,
-          height: 14,
-          marginTop: 2,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        accessibilityLabel={statusLabel}
-      >
-        <StatusGlyph tone={tone} label={statusLabel} tokens={tokens} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={{
-            color: pending ? tokens.mutedForeground : tokens.foreground,
-            fontSize: 13.5,
-            fontWeight: "600",
-            lineHeight: 18,
-          }}
-        >
-          {title}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={{
-            color: tokens.mutedForeground,
-            fontSize: 12,
-            lineHeight: 16,
-            marginTop: 2,
-            minHeight: 16,
-          }}
-        >
-          {summaryText || " "}
-        </Text>
-      </View>
-    </View>
-  );
+  const detailLines = uniqueLines(lines?.some(Boolean) ? lines : [summaryText]);
+  const detailLinks = links ?? [];
 
   return (
-    <Pressable
-      onPress={onPress}
-      onLongPress={onLongPress}
-      disabled={disabled}
-      accessibilityRole={accessibilityRole}
-      accessibilityActions={accessibilityActions}
-      onAccessibilityAction={onAccessibilityAction}
-      style={{ maxWidth: "100%", alignSelf: "flex-start" }}
-    >
-      {body}
-    </Pressable>
+    <>
+      <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}: ${statusLabel}`}
+        accessibilityValue={{ text: status }}
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen(true)}
+        onLongPress={onLongPress}
+        accessibilityActions={accessibilityActions}
+        onAccessibilityAction={onAccessibilityAction}
+        style={{
+          height: AGENT_RUN_CARD_HEIGHT_PX,
+          maxWidth: AGENT_RUN_CARD_WIDTH_PX,
+          width: "100%",
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          overflow: "hidden",
+          borderRadius: 8,
+          backgroundColor: tokens.background,
+          paddingHorizontal: 12,
+        }}
+      >
+        <View
+          style={{
+            width: 14,
+            height: 14,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <StatusGlyph tone={tone} label={statusLabel} tokens={tokens} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: pending ? tokens.mutedForeground : tokens.foreground,
+              fontSize: 13.5,
+              fontWeight: "600",
+              lineHeight: 18,
+              height: 18,
+            }}
+          >
+            {title}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: tokens.mutedForeground,
+              fontSize: 12,
+              lineHeight: 16,
+              height: 16,
+              marginTop: 2,
+            }}
+          >
+            {summaryText || " "}
+          </Text>
+        </View>
+      </Pressable>
+      <Modal
+        visible={open}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setOpen(false)}
+      >
+        <View
+          testID="agent-run-dialog"
+          style={{
+            flex: 1,
+            backgroundColor: tokens.background,
+            paddingHorizontal: 20,
+            paddingTop: 20,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <Text
+              accessibilityRole="header"
+              style={{
+                flex: 1,
+                color: tokens.foreground,
+                fontSize: 18,
+                fontWeight: "600",
+              }}
+            >
+              {title}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("Close")}
+              onPress={() => setOpen(false)}
+            >
+              <NativeSymbol ios="xmark" android="close" size={18} color={tokens.mutedForeground} />
+            </Pressable>
+          </View>
+          <Text style={{ color: tokens.mutedForeground, fontSize: 13, marginBottom: 16 }}>
+            {statusLabel}
+          </Text>
+          <ScrollView style={{ flex: 1 }}>
+            {detailLines.map((line) => (
+              <Text
+                key={line}
+                style={{ color: tokens.foreground, fontSize: 15, lineHeight: 22, marginBottom: 12 }}
+              >
+                {line}
+              </Text>
+            ))}
+            {detailLinks.map((link) => (
+              <Pressable
+                key={link.href}
+                accessibilityRole="link"
+                onPress={() => Linking.openURL(link.href).catch(() => undefined)}
+                style={{ marginBottom: 12 }}
+              >
+                <Text
+                  style={{
+                    color: tokens.foreground,
+                    fontSize: 15,
+                    textDecorationLine: "underline",
+                  }}
+                >
+                  {link.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -178,8 +259,11 @@ export function CloudAgentCard({
           ? "cancelled"
           : "failed";
   const prHref = cloudAgentHttpsUrl(block.prUrl);
-  const href = prHref ?? cloudAgentHttpsUrl(block.url);
+  const agentHref = cloudAgentHttpsUrl(block.url);
   const summary = prHref ? t("Pull request") : oneLineSummary(block.branch) || t("Cloud agent");
+  const links: AgentRunLink[] = [];
+  if (prHref) links.push({ href: prHref, label: t("Pull request") });
+  if (agentHref && agentHref !== prHref) links.push({ href: agentHref, label: t("Open") });
 
   return (
     <AgentRunStack kind="agent">
@@ -190,9 +274,8 @@ export function CloudAgentCard({
         tone={tone}
         status={block.status}
         statusLabel={statusLabel}
-        onPress={href ? () => Linking.openURL(href).catch(() => undefined) : undefined}
-        disabled={!href}
-        accessibilityRole={href ? "link" : "text"}
+        lines={[block.branch]}
+        links={links}
       />
     </AgentRunStack>
   );
@@ -233,7 +316,7 @@ export function SubagentCard({
         tone={tone}
         status={block.status}
         statusLabel={statusLabel}
-        accessibilityRole="text"
+        lines={[block.task !== title ? block.task : undefined, block.progress, block.result]}
         accessibilityActions={accessibilityActions}
         onAccessibilityAction={onAccessibilityAction}
         onLongPress={onLongPress}
@@ -263,7 +346,7 @@ export function AgentRunStack({
   return (
     <View
       style={{
-        maxWidth: 360,
+        maxWidth: AGENT_RUN_CARD_WIDTH_PX,
         width: "100%",
         alignSelf: "flex-start",
         gap: stacked ? 6 : 0,

@@ -3,7 +3,13 @@ import { I18nProvider } from "@lingui/react";
 import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AgentRunCard, AgentRunStack, joinDetail, oneLineSummary } from "./AgentRunCard";
+import {
+  AGENT_RUN_CARD_HEIGHT_PX,
+  AgentRunCard,
+  AgentRunStack,
+  joinDetail,
+  oneLineSummary,
+} from "./AgentRunCard";
 
 function render(ui: ReactNode) {
   const i18n = setupI18n({ locale: "en", messages: {} });
@@ -11,6 +17,9 @@ function render(ui: ReactNode) {
   i18n.activate("en");
   return renderToString(<I18nProvider i18n={i18n}>{ui}</I18nProvider>);
 }
+
+const LONG_PROGRESS =
+  "Searching the thread renderer for the compact agent-status row, including Shell MessageView, the mobile thread, and the shared AgentRunCard shell so this progress text would grow the old slab.";
 
 describe("oneLineSummary", () => {
   it("collapses whitespace and trims", () => {
@@ -44,6 +53,8 @@ describe("AgentRunCard", () => {
     expect(html).toContain('data-testid="cloud-agent-card"');
     expect(html).toContain('data-status="running"');
     expect(html).toContain("w-[360px]");
+    expect(html).toContain("h-[52px]");
+    expect(html).toContain("overflow-hidden");
     expect(html).toContain("rounded-lg");
     expect(html).toContain("bg-background");
     expect(html).toContain("font-semibold");
@@ -53,7 +64,10 @@ describe("AgentRunCard", () => {
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-label="running"');
     expect(html).toContain("animate-spin");
+    expect(html).toContain('type="button"');
+    expect(html).toContain('aria-haspopup="dialog"');
     expect(html).not.toContain("<a ");
+    expect(html).not.toContain("agent-run-dialog");
   });
 
   it("keeps a two-line row when the muted line is empty", () => {
@@ -66,7 +80,38 @@ describe("AgentRunCard", () => {
         statusLabel="running"
       />,
     );
-    expect(html).toContain("min-h-4");
+    expect(html).toContain("h-4");
+    expect(html).toContain("h-[52px]");
+  });
+
+  it("does not grow when progress text is long", () => {
+    const shortHtml = render(
+      <AgentRunCard
+        testId="subagent-card"
+        title="Map the layout"
+        summary="Searching"
+        tone="running"
+        status="running"
+        statusLabel="running"
+      />,
+    );
+    const longHtml = render(
+      <AgentRunCard
+        testId="subagent-card"
+        title="Map the layout"
+        summary={LONG_PROGRESS}
+        tone="running"
+        status="running"
+        statusLabel="running"
+        lines={[LONG_PROGRESS]}
+      />,
+    );
+    expect(longHtml).toContain("h-[52px]");
+    expect(longHtml).toContain("truncate");
+    expect(longHtml).toContain("overflow-hidden");
+    expect(shortHtml).toContain("h-[52px]");
+    expect(AGENT_RUN_CARD_HEIGHT_PX).toBe(52);
+    expect(longHtml).toContain(LONG_PROGRESS);
   });
 
   it("uses check, x, and muted pending glyphs", () => {
@@ -104,7 +149,7 @@ describe("AgentRunCard", () => {
     expect(success).not.toContain("animate-spin");
   });
 
-  it("wraps the row in a link when a url exists", () => {
+  it("keeps links for the dialog instead of wrapping the row", () => {
     const html = render(
       <AgentRunCard
         testId="cloud-agent-card"
@@ -113,12 +158,12 @@ describe("AgentRunCard", () => {
         tone="success"
         status="finished"
         statusLabel="finished"
-        href="https://github.com/example/demo/pull/1"
+        links={[{ href: "https://github.com/example/demo/pull/1", label: "Pull request" }]}
       />,
     );
 
-    expect(html).toContain('href="https://github.com/example/demo/pull/1"');
-    expect(html).toContain('target="_blank"');
+    expect(html).toContain('type="button"');
+    expect(html).not.toContain('href="https://github.com/example/demo/pull/1"');
     expect(html).toContain("Pull request");
   });
 

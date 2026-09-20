@@ -1,7 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import type { MessageBlock } from "@rakazo/contracts";
 import { cloudAgentHttpsUrl } from "@rakazo/core";
-import type { AgentRunTone } from "./AgentRunCard";
+import type { AgentRunLink, AgentRunTone } from "./AgentRunCard";
 import { AgentRunCard, AgentRunStack, oneLineSummary } from "./AgentRunCard";
 
 function cloudAgentTone(
@@ -20,7 +20,7 @@ export function CloudAgentCard({
 }) {
   const { t } = useLingui();
   const prHref = cloudAgentHttpsUrl(block.prUrl);
-  const href = prHref ?? cloudAgentHttpsUrl(block.url);
+  const agentHref = cloudAgentHttpsUrl(block.url);
   const statusLabel =
     block.status === "running"
       ? t`running`
@@ -30,6 +30,9 @@ export function CloudAgentCard({
           ? t`cancelled`
           : t`failed`;
   const summary = prHref ? t`Pull request` : oneLineSummary(block.branch) || t`Cloud agent`;
+  const links: AgentRunLink[] = [];
+  if (prHref) links.push({ href: prHref, label: t`Pull request` });
+  if (agentHref && agentHref !== prHref) links.push({ href: agentHref, label: t`Open` });
 
   return (
     <AgentRunStack>
@@ -40,7 +43,8 @@ export function CloudAgentCard({
         tone={cloudAgentTone(block.status)}
         status={block.status}
         statusLabel={statusLabel}
-        href={href}
+        lines={[block.branch]}
+        links={links}
       />
     </AgentRunStack>
   );
