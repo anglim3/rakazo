@@ -42,6 +42,8 @@ export const ZH_MESSAGES: Record<string, string> = {
   "Cloud agent": "云端智能体",
   Close: "关闭",
   Open: "打开",
+  "Open in Web": "在网页中打开",
+  "View PR": "查看 PR",
   "Pull request": "拉取请求",
   running: "运行中",
   finished: "已完成",
@@ -546,6 +548,8 @@ export const ZH_MESSAGES: Record<string, string> = {
     "粘贴你服务器的 OpenAI 兼容地址。如有需要，Rakazo 会自动补上 /v1。",
   Paused: "已暂停",
   Prompt: "提示词",
+  Progress: "进展",
+  Result: "结果",
   "Recording a live demonstration needs desktop or web with the full computer view. You can still ask this bot to run saved skills from chat.":
     "录制现场演示需要桌面端或网页端的完整电脑视图。你仍可在聊天中让这个 Bot 运行已保存的技能。",
   "Remote MCP server": "远程 MCP 服务器",

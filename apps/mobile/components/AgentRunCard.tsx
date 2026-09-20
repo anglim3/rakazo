@@ -11,7 +11,8 @@ import { NativeSymbol } from "./native-symbol";
 export type AgentRunTone = "running" | "success" | "failed" | "cancelled";
 export type AgentRunStackKind = "subagent" | "agent";
 export type AgentRunLink = { href: string; label: string };
-export type AgentRunAction = AgentRunLink & { kind: "primary" | "secondary" };
+export type AgentRunAction = { label: string; kind: "primary" | "secondary"; href?: string };
+export type AgentRunSection = { title: string; body: string };
 export type AgentRunFileStats = {
   filesChanged?: number;
   additions?: number;
@@ -64,6 +65,7 @@ export function AgentRunCard({
   fileStats,
   filesLabel,
   lines,
+  sections,
   links,
   actions,
   onLongPress,
@@ -80,6 +82,7 @@ export function AgentRunCard({
   fileStats?: AgentRunFileStats;
   filesLabel?: string;
   lines?: Array<string | undefined>;
+  sections?: AgentRunSection[];
   links?: AgentRunLink[];
   actions?: AgentRunAction[];
   onLongPress?: PressableProps["onLongPress"];
@@ -93,7 +96,8 @@ export function AgentRunCard({
   const prText = oneLineSummary(prLine);
   const showFiles = hasFileStats(fileStats);
   const detailLines = uniqueLines(lines?.some(Boolean) ? lines : [prText, filesLabel, summaryText]);
-  const detailLinks = links ?? [];
+  const detailSections = sections ?? [];
+  const detailLinks = (links ?? []).filter((link) => Boolean(link.href));
   const cardActions = actions ?? [];
   const pill = pillColors(tone, tokens);
   const chrome = `${String(tokens.foreground)}33`;
@@ -223,14 +227,37 @@ export function AgentRunCard({
         {cardActions.length > 0 ? (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {cardActions.map((action) => {
-              const primary = action.kind === "primary";
-              if (primary) {
+              const href = action.href;
+              if (!href) {
                 return (
                   <Pressable
-                    key={action.href}
+                    key={action.label}
+                    testID="agent-run-open"
+                    accessibilityRole="button"
+                    accessibilityLabel={action.label}
+                    onPress={() => setOpen(true)}
+                    style={{
+                      borderRadius: 6,
+                      backgroundColor: tokens.primary,
+                      paddingHorizontal: 10,
+                      paddingVertical: 7,
+                    }}
+                  >
+                    <Text
+                      style={{ color: tokens.primaryForeground, fontSize: 13, fontWeight: "500" }}
+                    >
+                      {action.label}
+                    </Text>
+                  </Pressable>
+                );
+              }
+              if (action.kind === "primary") {
+                return (
+                  <Pressable
+                    key={href}
                     accessibilityRole="link"
                     accessibilityLabel={action.label}
-                    onPress={() => Linking.openURL(action.href).catch(() => undefined)}
+                    onPress={() => Linking.openURL(href).catch(() => undefined)}
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
@@ -257,10 +284,10 @@ export function AgentRunCard({
               }
               return (
                 <Pressable
-                  key={action.href}
+                  key={href}
                   accessibilityRole="link"
                   accessibilityLabel={action.label}
-                  onPress={() => Linking.openURL(action.href).catch(() => undefined)}
+                  onPress={() => Linking.openURL(href).catch(() => undefined)}
                   style={{
                     flexDirection: "row",
                     alignItems: "stretch",
@@ -344,14 +371,37 @@ export function AgentRunCard({
             {statusLabel}
           </Text>
           <ScrollView style={{ flex: 1 }}>
-            {detailLines.map((line) => (
-              <Text
-                key={line}
-                style={{ color: tokens.foreground, fontSize: 15, lineHeight: 22, marginBottom: 12 }}
-              >
-                {line}
-              </Text>
-            ))}
+            {detailSections.length > 0
+              ? detailSections.map((section) => (
+                  <View key={section.title} style={{ marginBottom: 16 }}>
+                    <Text
+                      style={{
+                        color: tokens.mutedForeground,
+                        fontSize: 12,
+                        fontWeight: "500",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {section.title}
+                    </Text>
+                    <Text style={{ color: tokens.foreground, fontSize: 15, lineHeight: 22 }}>
+                      {section.body}
+                    </Text>
+                  </View>
+                ))
+              : detailLines.map((line) => (
+                  <Text
+                    key={line}
+                    style={{
+                      color: tokens.foreground,
+                      fontSize: 15,
+                      lineHeight: 22,
+                      marginBottom: 12,
+                    }}
+                  >
+                    {line}
+                  </Text>
+                ))}
             {detailLinks.map((link) => (
               <Pressable
                 key={link.href}
@@ -433,7 +483,9 @@ export function CloudAgentCard({
       fileStats={fileStats}
       filesLabel={filesLabel}
       lines={[block.branch, prLabel, filesLabel]}
-      links={actions}
+      links={actions.filter((action): action is AgentRunAction & { href: string } =>
+        Boolean(action.href),
+      )}
       actions={actions}
     />
   );
@@ -458,6 +510,15 @@ export function SubagentCard({
   const title = oneLineSummary(block.task) || block.name || t("subagent");
   const summary =
     block.status === "running" ? oneLineSummary(block.progress) : oneLineSummary(block.result);
+  const sections: AgentRunSection[] = [];
+  const prompt = block.task.trim();
+  if (prompt) sections.push({ title: t("Prompt"), body: prompt });
+  const progress = block.progress?.trim();
+  if (progress && (block.status === "running" || progress)) {
+    sections.push({ title: t("Progress"), body: progress });
+  }
+  const result = block.result?.trim();
+  if (result) sections.push({ title: t("Result"), body: result });
 
   return (
     <AgentRunCard
@@ -467,7 +528,8 @@ export function SubagentCard({
       tone={tone}
       status={block.status}
       statusLabel={statusLabel}
-      lines={[block.task !== title ? block.task : undefined, block.progress, block.result]}
+      sections={sections}
+      actions={[{ label: t("Open"), kind: "primary" }]}
       accessibilityActions={accessibilityActions}
       onAccessibilityAction={onAccessibilityAction}
       onLongPress={onLongPress}

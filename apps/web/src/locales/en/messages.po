@@ -2628,6 +2628,7 @@ msgstr "Only empty spaces can be deleted. Delete its bots and groups first."
 #: src/pages/ScratchpadSection.tsx:159
 #: src/pages/Shell.tsx:3387
 #: src/pages/Shell.tsx:3392
+#: src/components/SubagentCard.tsx:41
 msgid "Open"
 msgstr "Open"
 
@@ -2783,9 +2784,17 @@ msgstr "Private"
 msgid "Private workspace with its own bots and groups."
 msgstr "Private workspace with its own bots and groups."
 
+#: src/components/SubagentCard.tsx:28
+msgid "Progress"
+msgstr "Progress"
+
 #: src/components/integrations/IntegrationSetup.tsx:182
 msgid "Project ID"
 msgstr "Project ID"
+
+#: src/components/SubagentCard.tsx:26
+msgid "Prompt"
+msgstr "Prompt"
 
 #: src/pages/MemorySettingsOverlay.tsx:219
 #: src/pages/Onboarding.tsx:390
@@ -3036,6 +3045,10 @@ msgstr "Restore the last saved workspace. Unsaved work on the computer is lost."
 #: src/components/ComputerUpdateProgress.tsx:53
 msgid "Restoring your workspace"
 msgstr "Restoring your workspace"
+
+#: src/components/SubagentCard.tsx:30
+msgid "Result"
+msgstr "Result"
 
 #: src/App.tsx:171
 #: src/pages/PeerMessagesOverlay.tsx:109

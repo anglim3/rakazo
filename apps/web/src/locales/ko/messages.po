@@ -2628,6 +2628,7 @@ msgstr ""
 #: src/pages/ScratchpadSection.tsx:159
 #: src/pages/Shell.tsx:3387
 #: src/pages/Shell.tsx:3392
+#: src/components/SubagentCard.tsx:41
 msgid "Open"
 msgstr "열기"
 
@@ -2783,8 +2784,16 @@ msgstr "Bot 전용"
 msgid "Private workspace with its own bots and groups."
 msgstr ""
 
+#: src/components/SubagentCard.tsx:28
+msgid "Progress"
+msgstr ""
+
 #: src/components/integrations/IntegrationSetup.tsx:182
 msgid "Project ID"
+msgstr ""
+
+#: src/components/SubagentCard.tsx:26
+msgid "Prompt"
 msgstr ""
 
 #: src/pages/MemorySettingsOverlay.tsx:219
@@ -3035,6 +3044,10 @@ msgstr "마지막으로 저장된 작업 공간을 복원합니다. 컴퓨터에
 
 #: src/components/ComputerUpdateProgress.tsx:53
 msgid "Restoring your workspace"
+msgstr ""
+
+#: src/components/SubagentCard.tsx:30
+msgid "Result"
 msgstr ""
 
 #: src/App.tsx:171

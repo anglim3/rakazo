@@ -118,6 +118,33 @@ describe("AgentRunCard", () => {
     expect(withoutStats).not.toContain("+0");
     expect(withoutStats).not.toContain("text-destructive");
     expect(withoutStats).not.toContain("View PR");
+    expect(withoutStats).not.toContain("Open in Web");
+    expect(withoutStats).not.toContain("agent-run-open");
+  });
+
+  it("renders in-app Open on local cards and keeps Open in Web off them", () => {
+    const html = render(
+      <AgentRunCard
+        testId="subagent-card"
+        title="Map the layout"
+        summary="Searching"
+        tone="running"
+        status="running"
+        statusLabel="Running"
+        actions={[{ label: "Open", kind: "primary" }]}
+      />,
+    );
+
+    expect(html).toContain('data-testid="subagent-card"');
+    expect(html).toContain('data-testid="agent-run-open"');
+    expect(html).toContain("Open");
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).not.toContain("Open in Web");
+    expect(html).not.toContain("cursor.com");
+    expect(html).not.toContain("View PR");
+    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("agent-run-dialog");
+    expect(html).not.toContain("Code changes");
   });
 
   it("does not grow when progress text is long", () => {

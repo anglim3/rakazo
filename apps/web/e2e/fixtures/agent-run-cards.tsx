@@ -175,6 +175,7 @@ function CurrentGallery() {
             tone="running"
             status="running"
             statusLabel="Running"
+            actions={[{ label: t`Open`, kind: "primary" }]}
           />
           <AgentRunCard
             testId="stack-running-b"
@@ -183,6 +184,7 @@ function CurrentGallery() {
             tone="running"
             status="running"
             statusLabel="Running"
+            actions={[{ label: t`Open`, kind: "primary" }]}
           />
           <AgentRunCard
             testId="stack-running-c"
@@ -191,6 +193,7 @@ function CurrentGallery() {
             tone="running"
             status="running"
             statusLabel="Running"
+            actions={[{ label: t`Open`, kind: "primary" }]}
           />
           <AgentRunCard
             testId="stack-pending"
@@ -199,6 +202,7 @@ function CurrentGallery() {
             tone="cancelled"
             status="cancelled"
             statusLabel="Cancelled"
+            actions={[{ label: t`Open`, kind: "primary" }]}
           />
         </AgentRunStack>
       </Shot>

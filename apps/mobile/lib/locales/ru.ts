@@ -55,6 +55,8 @@ export const RU_MESSAGES: Record<string, string> = {
   "Cloud agent": "Облачный агент",
   Close: "Закрыть",
   Open: "Открыть",
+  "Open in Web": "Открыть в вебе",
+  "View PR": "Открыть PR",
   "Pull request": "Запрос на слияние",
   running: "выполняется",
   finished: "завершено",
@@ -565,6 +567,8 @@ export const RU_MESSAGES: Record<string, string> = {
     "Вставьте OpenAI-совместимый адрес со своего сервера. При необходимости Rakazo добавляет /v1.",
   Paused: "Приостановлено",
   Prompt: "Промпт",
+  Progress: "Прогресс",
+  Result: "Результат",
   "Recording a live demonstration needs desktop or web with the full computer view. You can still ask this bot to run saved skills from chat.":
     "Для записи живой демонстрации требуется приложение для компьютера или веб-приложение с полным представлением компьютера. Вы по-прежнему можете попросить этого бота запустить сохранённые навыки из чата.",
   "Remote MCP server": "Удалённый MCP-сервер",

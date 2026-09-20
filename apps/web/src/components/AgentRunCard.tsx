@@ -13,7 +13,8 @@ import { Children, useState } from "react";
 
 export type AgentRunTone = "running" | "success" | "failed" | "cancelled";
 export type AgentRunLink = { href: string; label: string };
-export type AgentRunAction = AgentRunLink & { kind: "primary" | "secondary" };
+export type AgentRunAction = { label: string; kind: "primary" | "secondary"; href?: string };
+export type AgentRunSection = { title: string; body: string };
 export type AgentRunFileStats = {
   filesChanged?: number;
   additions?: number;
@@ -82,6 +83,7 @@ function AgentRunWorkDialog({
   onOpenChange,
   title,
   statusLabel,
+  sections,
   lines,
   links,
 }: {
@@ -89,6 +91,7 @@ function AgentRunWorkDialog({
   onOpenChange: (open: boolean) => void;
   title: string;
   statusLabel: string;
+  sections: AgentRunSection[];
   lines: string[];
   links: AgentRunLink[];
 }) {
@@ -102,7 +105,18 @@ function AgentRunWorkDialog({
           </DialogTitle>
           <DialogDescription>{statusLabel}</DialogDescription>
         </DialogHeader>
-        {lines.length > 0 ? (
+        {sections.length > 0 ? (
+          <div className="flex max-h-[min(70vh,24rem)] flex-col gap-4 overflow-y-auto">
+            {sections.map((section) => (
+              <div key={section.title} className="min-w-0">
+                <h3 className="text-[12px] font-medium text-muted-foreground">{section.title}</h3>
+                <p className="mt-1 text-[14px] leading-relaxed wrap-anywhere whitespace-pre-wrap text-foreground">
+                  {section.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : lines.length > 0 ? (
           <div className="max-h-[min(70vh,24rem)] overflow-y-auto text-[14px] leading-relaxed wrap-anywhere whitespace-pre-wrap text-foreground">
             {lines.map((line) => (
               <p key={line} className="not-first:mt-3">
@@ -131,7 +145,26 @@ function AgentRunWorkDialog({
   );
 }
 
-function ActionLink({ action }: { action: AgentRunAction }) {
+function CardAction({
+  action,
+  onOpenDialog,
+}: {
+  action: AgentRunAction;
+  onOpenDialog: () => void;
+}) {
+  if (!action.href) {
+    return (
+      <button
+        type="button"
+        data-testid="agent-run-open"
+        aria-haspopup="dialog"
+        onClick={onOpenDialog}
+        className={cn(buttonVariants({ variant: "default", size: "default" }), "rounded-md")}
+      >
+        {action.label}
+      </button>
+    );
+  }
   if (action.kind === "primary") {
     return (
       <a
@@ -178,6 +211,7 @@ export function AgentRunCard({
   fileStats,
   filesLabel,
   lines,
+  sections,
   links,
   actions,
 }: {
@@ -191,6 +225,7 @@ export function AgentRunCard({
   fileStats?: AgentRunFileStats;
   filesLabel?: string;
   lines?: Array<string | undefined>;
+  sections?: AgentRunSection[];
   links?: AgentRunLink[];
   actions?: AgentRunAction[];
 }) {
@@ -199,7 +234,8 @@ export function AgentRunCard({
   const prText = oneLineSummary(prLine);
   const showFiles = hasFileStats(fileStats);
   const detailLines = uniqueLines(lines?.some(Boolean) ? lines : [prText, filesLabel, summaryText]);
-  const detailLinks = links ?? [];
+  const detailSections = sections ?? [];
+  const detailLinks = (links ?? []).filter((link) => Boolean(link.href));
   const cardActions = actions ?? [];
 
   return (
@@ -269,7 +305,11 @@ export function AgentRunCard({
         {cardActions.length > 0 ? (
           <div className="flex min-w-0 flex-wrap gap-2">
             {cardActions.map((action) => (
-              <ActionLink key={action.href} action={action} />
+              <CardAction
+                key={action.href ?? action.label}
+                action={action}
+                onOpenDialog={() => setOpen(true)}
+              />
             ))}
           </div>
         ) : null}
@@ -279,6 +319,7 @@ export function AgentRunCard({
         onOpenChange={setOpen}
         title={title}
         statusLabel={statusLabel}
+        sections={detailSections}
         lines={detailLines}
         links={detailLinks}
       />

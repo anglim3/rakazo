@@ -91,21 +91,51 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   expect(runningBox!.width).toBeLessThanOrEqual(520);
   expect(longBox!.width).toBe(runningBox!.width);
   expect(longBox!.height).toBeGreaterThan(70);
-  expect(longBox!.height).toBeLessThan(160);
+  expect(longBox!.height).toBeLessThan(200);
   expect(Math.abs(longBox!.height - completedBox!.height)).toBeLessThan(2);
 
   const longCard = page.getByTestId("shot-subagent-running").getByTestId("subagent-card");
-  await longCard.getByRole("button").click();
+  await expect(longCard.getByTestId("agent-run-open")).toBeVisible();
+  await expect(longCard.getByRole("button", { name: "Open", exact: true })).toBeVisible();
+  await expect(longCard.getByRole("link", { name: "Open in Web" })).toHaveCount(0);
+  await expect(
+    page.getByTestId("shot-subagent-completed").getByTestId("agent-run-open"),
+  ).toBeVisible();
+  await expect(subagent.getByRole("link", { name: "Open in Web" })).toHaveCount(0);
+
+  await longCard.getByTestId("agent-run-open").click();
   const dialog = page.getByTestId("agent-run-dialog");
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Prompt" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Progress" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Result" })).toHaveCount(0);
+  await expect(dialog.getByRole("heading", { name: "Code changes" })).toHaveCount(0);
+  await expect(dialog).toContainText("Map the message card layout in Shell and mobile");
   await expect(dialog).toContainText("Searching the thread renderer for the compact");
   await expect(dialog).toContainText("Running");
+  await expect(dialog.getByRole("link", { name: "Open in Web" })).toHaveCount(0);
   const cardAfterOpen = await longCard.boundingBox();
   expect(cardAfterOpen!.height).toBe(longBox!.height);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
 
-  await finishedCloud.getByRole("button").click();
+  await page
+    .getByTestId("shot-subagent-completed")
+    .getByTestId("subagent-card")
+    .locator("button[aria-haspopup='dialog']")
+    .first()
+    .click();
+  const completedDialog = page.getByTestId("agent-run-dialog");
+  await expect(completedDialog).toBeVisible();
+  await expect(completedDialog.getByRole("heading", { name: "Prompt" })).toBeVisible();
+  await expect(completedDialog.getByRole("heading", { name: "Result" })).toBeVisible();
+  await expect(completedDialog.getByRole("heading", { name: "Progress" })).toHaveCount(0);
+  await expect(completedDialog.getByRole("heading", { name: "Code changes" })).toHaveCount(0);
+  await expect(completedDialog).toContainText("Cards should stay compact with a status mark.");
+  await page.keyboard.press("Escape");
+  await expect(completedDialog).toHaveCount(0);
+
+  await finishedCloud.locator("button[aria-haspopup='dialog']").click();
   await expect(page.getByTestId("agent-run-dialog")).toBeVisible();
   await expect(
     page.getByTestId("agent-run-dialog").getByRole("link", { name: "View PR" }),
@@ -132,16 +162,22 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
         await saveShot(testInfo, "after-cloud-finished-dark", screenshotPath);
       }
     }
-    await page
-      .getByTestId("shot-subagent-running")
-      .getByTestId("subagent-card")
-      .getByRole("button")
-      .click();
+    await page.getByTestId("shot-subagent-running").getByTestId("agent-run-open").click();
     const workDialog = page.getByTestId("agent-run-dialog");
     await expect(workDialog).toBeVisible();
+    await expect(workDialog.getByRole("heading", { name: "Prompt" })).toBeVisible();
+    await expect(workDialog.getByRole("heading", { name: "Progress" })).toBeVisible();
     const dialogPath = testInfo.outputPath(`after-dialog-running-${theme}.png`);
     await workDialog.screenshot({ animations: "disabled", path: dialogPath });
     await saveShot(testInfo, `after-dialog-running-${theme}`, dialogPath);
+    await page.keyboard.press("Escape");
+    await page.getByTestId("shot-subagent-completed").getByTestId("agent-run-open").click();
+    const completedWork = page.getByTestId("agent-run-dialog");
+    await expect(completedWork).toBeVisible();
+    await expect(completedWork.getByRole("heading", { name: "Result" })).toBeVisible();
+    const completedPath = testInfo.outputPath(`after-dialog-completed-${theme}.png`);
+    await completedWork.screenshot({ animations: "disabled", path: completedPath });
+    await saveShot(testInfo, `after-dialog-completed-${theme}`, completedPath);
     await page.keyboard.press("Escape");
   }
 

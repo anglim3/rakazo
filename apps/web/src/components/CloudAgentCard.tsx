@@ -59,7 +59,9 @@ export function CloudAgentCard({
       fileStats={fileStats}
       filesLabel={filesLabel}
       lines={[block.branch, prLabel, filesLabel]}
-      links={actions}
+      links={actions.filter((action): action is AgentRunAction & { href: string } =>
+        Boolean(action.href),
+      )}
       actions={actions}
     />
   );

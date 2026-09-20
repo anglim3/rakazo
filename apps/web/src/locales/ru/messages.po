@@ -2628,6 +2628,7 @@ msgstr "Удалить можно только пустые пространст
 #: src/pages/ScratchpadSection.tsx:159
 #: src/pages/Shell.tsx:3387
 #: src/pages/Shell.tsx:3392
+#: src/components/SubagentCard.tsx:41
 msgid "Open"
 msgstr "Открыть"
 
@@ -2783,9 +2784,17 @@ msgstr "Личный"
 msgid "Private workspace with its own bots and groups."
 msgstr "Приватное пространство со своими ботами и группами."
 
+#: src/components/SubagentCard.tsx:28
+msgid "Progress"
+msgstr ""
+
 #: src/components/integrations/IntegrationSetup.tsx:182
 msgid "Project ID"
 msgstr "ID проекта"
+
+#: src/components/SubagentCard.tsx:26
+msgid "Prompt"
+msgstr ""
 
 #: src/pages/MemorySettingsOverlay.tsx:219
 #: src/pages/Onboarding.tsx:390
@@ -3036,6 +3045,10 @@ msgstr "Восстановите последнее сохраненное ра�
 #: src/components/ComputerUpdateProgress.tsx:53
 msgid "Restoring your workspace"
 msgstr "Восстановление вашего рабочего пространства"
+
+#: src/components/SubagentCard.tsx:30
+msgid "Result"
+msgstr ""
 
 #: src/App.tsx:171
 #: src/pages/PeerMessagesOverlay.tsx:109

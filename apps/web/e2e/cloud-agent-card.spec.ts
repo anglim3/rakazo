@@ -23,7 +23,7 @@ test("renders a compact cloud agent card from an emulator launch", async ({ page
     "href",
     "https://github.com/example/demo/pull/1",
   );
-  await card.getByRole("button").click();
+  await card.locator("button[aria-haspopup='dialog']").click();
   const dialog = page.getByTestId("agent-run-dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("link", { name: "View PR" })).toHaveAttribute(
