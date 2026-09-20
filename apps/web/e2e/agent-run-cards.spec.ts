@@ -59,6 +59,8 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   await expect(runningCloud).toContainText("Running");
   await expect(runningCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
   await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
+  await expect(runningCloud).not.toContainText("View PR");
+  await expect(runningCloud).not.toContainText("PR #");
   await expect(runningCloud).not.toContainText("files changed");
   await expect(page.getByTestId("agent-run-stack")).toHaveCount(1);
   await expect(page.getByTestId("shot-stack").getByTestId("agent-run-stack")).toBeVisible();
@@ -98,6 +100,10 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   await expect(longCard.getByTestId("agent-run-open")).toBeVisible();
   await expect(longCard.getByRole("button", { name: "Open", exact: true })).toBeVisible();
   await expect(longCard.getByRole("link", { name: "Open in Web" })).toHaveCount(0);
+  await expect(longCard.getByRole("link", { name: "View PR" })).toHaveCount(0);
+  await expect(longCard).not.toContainText("View PR");
+  await expect(longCard).not.toContainText("PR #");
+  await expect(longCard).not.toContainText("files changed");
   await expect(
     page.getByTestId("shot-subagent-completed").getByTestId("agent-run-open"),
   ).toBeVisible();
@@ -114,6 +120,7 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   await expect(dialog).toContainText("Searching the thread renderer for the compact");
   await expect(dialog).toContainText("Running");
   await expect(dialog.getByRole("link", { name: "Open in Web" })).toHaveCount(0);
+  await expect(dialog.getByRole("link", { name: "View PR" })).toHaveCount(0);
   const cardAfterOpen = await longCard.boundingBox();
   expect(cardAfterOpen!.height).toBe(longBox!.height);
   await page.keyboard.press("Escape");
@@ -132,8 +139,20 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   await expect(completedDialog.getByRole("heading", { name: "Progress" })).toHaveCount(0);
   await expect(completedDialog.getByRole("heading", { name: "Code changes" })).toHaveCount(0);
   await expect(completedDialog).toContainText("Cards should stay compact with a status mark.");
+  await expect(completedDialog.getByRole("link", { name: "View PR" })).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(completedDialog).toHaveCount(0);
+
+  await runningCloud.locator("button[aria-haspopup='dialog']").click();
+  const runningCloudDialog = page.getByTestId("agent-run-dialog");
+  await expect(runningCloudDialog).toBeVisible();
+  await expect(runningCloudDialog.getByRole("link", { name: "View PR" })).toHaveCount(0);
+  await expect(runningCloudDialog.getByRole("link", { name: "Open in Web" })).toHaveAttribute(
+    "href",
+    "https://cursor.com/agents/abc",
+  );
+  await page.keyboard.press("Escape");
+  await expect(runningCloudDialog).toHaveCount(0);
 
   await finishedCloud.locator("button[aria-haspopup='dialog']").click();
   await expect(page.getByTestId("agent-run-dialog")).toBeVisible();

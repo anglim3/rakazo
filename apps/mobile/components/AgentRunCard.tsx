@@ -454,7 +454,7 @@ export function CloudAgentCard({
   const agentHref = cloudAgentHttpsUrl(block.url);
   const prNumber = pullRequestNumberFromUrl(prHref);
   const prLabel = prNumber != null ? t("PR #{number}", { number: prNumber }) : undefined;
-  const prLine = [oneLineSummary(block.branch), prLabel].filter(Boolean).join(" ");
+  const prLine = [oneLineSummary(block.branch), prLabel].filter(Boolean).join(" ") || undefined;
   const filesChanged = block.filesChanged;
   const filesLabel =
     filesChanged != null ? t("{count} files changed", { count: filesChanged }) : undefined;
@@ -481,7 +481,7 @@ export function CloudAgentCard({
       statusLabel={statusLabel}
       prLine={prLine}
       fileStats={fileStats}
-      filesLabel={filesLabel}
+      filesLabel={fileStats ? filesLabel : undefined}
       lines={[block.branch, prLabel, filesLabel]}
       links={actions.filter((action): action is AgentRunAction & { href: string } =>
         Boolean(action.href),

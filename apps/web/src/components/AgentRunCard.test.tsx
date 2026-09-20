@@ -1,8 +1,9 @@
 import { setupI18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
+import type { MessageBlock } from "@rakazo/contracts";
 import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   AGENT_RUN_CARD_WIDTH_PX,
   AgentRunCard,
@@ -10,6 +11,17 @@ import {
   joinDetail,
   oneLineSummary,
 } from "./AgentRunCard";
+import { CloudAgentCard } from "./CloudAgentCard";
+import { SubagentCard } from "./SubagentCard";
+
+vi.mock("@lingui/react/macro", () => {
+  const t = (parts: TemplateStringsArray, ...values: unknown[]) =>
+    parts.reduce(
+      (result, part, index) => result + part + (index < values.length ? String(values[index]) : ""),
+      "",
+    );
+  return { useLingui: () => ({ t }) };
+});
 
 function render(ui: ReactNode) {
   const i18n = setupI18n({ locale: "en", messages: {} });
@@ -270,5 +282,100 @@ describe("AgentRunCard", () => {
     );
     expect(html).not.toContain("agent-run-stack-heading");
     expect(html).not.toContain("Started");
+  });
+});
+
+describe("CloudAgentCard", () => {
+  it("omits View PR and PR meta when prUrl is missing", () => {
+    const html = render(
+      <CloudAgentCard
+        block={{
+          kind: "cloud_agent",
+          agentId: "emu-running",
+          title: "Add a README",
+          status: "running",
+          url: "https://cursor.com/agents/abc",
+        }}
+      />,
+    );
+
+    expect(html).toContain('data-testid="cloud-agent-card"');
+    expect(html).toContain("Add a README");
+    expect(html).toContain("Running");
+    expect(html).toContain("Open in Web");
+    expect(html).toContain('href="https://cursor.com/agents/abc"');
+    expect(html).not.toContain("View PR");
+    expect(html).not.toContain("PR #");
+    expect(html).not.toContain("files changed");
+    expect(html).not.toContain("lucide-git-pull-request");
+  });
+
+  it("shows View PR only when prUrl exists and skips a duplicate Open in Web", () => {
+    const html = render(
+      <CloudAgentCard
+        block={{
+          kind: "cloud_agent",
+          agentId: "emu-pr",
+          title: "Sandbox MCP filesystem paths (#13)",
+          status: "finished",
+          url: "https://github.com/example/demo/pull/24",
+          prUrl: "https://github.com/example/demo/pull/24",
+          branch: "cursor/mcp-path-allowlist-3a30",
+        }}
+      />,
+    );
+
+    expect(html).toContain("View PR");
+    expect(html).toContain('href="https://github.com/example/demo/pull/24"');
+    expect(html).toContain("PR #24");
+    expect(html).not.toContain("Open in Web");
+  });
+
+  it("stays complete with title and status when no URLs exist", () => {
+    const html = render(
+      <CloudAgentCard
+        block={{
+          kind: "cloud_agent",
+          agentId: "emu-local",
+          title: "Investigate the logs",
+          status: "running",
+          url: "",
+        }}
+      />,
+    );
+
+    expect(html).toContain("Investigate the logs");
+    expect(html).toContain("Running");
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).not.toContain("View PR");
+    expect(html).not.toContain("Open in Web");
+    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("PR #");
+    expect(html).not.toContain("lucide-git-pull-request");
+  });
+});
+
+describe("SubagentCard", () => {
+  it("has Open and no PR chrome on local work", () => {
+    const block: Extract<MessageBlock, { kind: "subagent" }> = {
+      kind: "subagent",
+      agentId: "explore-1",
+      name: "Explore",
+      task: "Map the message card layout in Shell and mobile",
+      status: "running",
+      progress: "Searching the thread renderer",
+    };
+    const html = render(<SubagentCard block={block} />);
+
+    expect(html).toContain('data-testid="subagent-card"');
+    expect(html).toContain('data-testid="agent-run-open"');
+    expect(html).toContain("Open");
+    expect(html).toContain("Running");
+    expect(html).not.toContain("View PR");
+    expect(html).not.toContain("Open in Web");
+    expect(html).not.toContain("PR #");
+    expect(html).not.toContain("files changed");
+    expect(html).not.toContain("lucide-git-pull-request");
+    expect(html).not.toContain("<a ");
   });
 });
