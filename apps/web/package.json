@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "e2e": "playwright test",
     "build": "cross-env NODE_ENV=production vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --root ../.. apps/web/src",
+    "e2e": "playwright test",
     "intl:extract": "lingui extract --clean",
     "intl:compile": "lingui compile"
   },
