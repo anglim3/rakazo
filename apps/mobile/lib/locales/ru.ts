@@ -57,6 +57,8 @@ export const RU_MESSAGES: Record<string, string> = {
   Open: "Открыть",
   "Open in Web": "Открыть в вебе",
   "View PR": "Открыть PR",
+  "PR #{number}": "PR #{number}",
+  "{count} files changed": "изменено файлов: {count}",
   "Pull request": "Запрос на слияние",
   running: "выполняется",
   finished: "завершено",

@@ -44,6 +44,8 @@ export const ZH_MESSAGES: Record<string, string> = {
   Open: "打开",
   "Open in Web": "在网页中打开",
   "View PR": "查看 PR",
+  "PR #{number}": "PR #{number}",
+  "{count} files changed": "{count} 个文件已更改",
   "Pull request": "拉取请求",
   running: "运行中",
   finished: "已完成",

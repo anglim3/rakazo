@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "demo:agent-cards": "vite --open /e2e/fixtures/agent-run-cards.html",
+    "demo:mobile-agent-cards": "vite --config vite.mobile-agent-cards.config.ts --open /e2e/fixtures/agent-run-cards.html",
+    "e2e": "playwright test",
+    "e2e:mobile-agent-cards": "playwright test -c playwright.mobile-cards.config.ts",
     "build": "cross-env NODE_ENV=production vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit -p tsconfig.json",

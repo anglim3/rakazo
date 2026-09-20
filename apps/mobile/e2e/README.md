@@ -1,5 +1,19 @@
 # Mobile emulator smoke test
 
+## Agent card playground
+
+The real React Native `AgentRunCard` (Expo web via react-native-web) can be opened without a backend:
+
+```sh
+pnpm --filter @rakazo/mobile demo:agent-cards
+```
+
+Equivalent: `pnpm --filter @rakazo/web demo:mobile-agent-cards`. Capture the docs shots with:
+
+```sh
+UPDATE_AGENT_CARD_DOCS=1 pnpm --filter @rakazo/web e2e:mobile-agent-cards
+```
+
 This opt-in [Maestro](https://maestro.mobile.dev/) flow exercises sign-in, bot creation,
 thread messaging, and computer takeover/release on a real Android emulator or iOS simulator. It
 expects a running Rakazo stack and deliberately stays out of ordinary pull-request CI.

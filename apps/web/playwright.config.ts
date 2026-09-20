@@ -13,6 +13,7 @@ const reporters = [
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: ["mobile-agent-run-cards.spec.ts"],
   forbidOnly: Boolean(process.env.CI),
   fullyParallel: false,
   workers: realSandbox ? 1 : undefined,
