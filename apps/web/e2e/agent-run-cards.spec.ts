@@ -1,33 +1,7 @@
-import { copyFile, mkdir } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import type { TestInfo } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { captureScreenshot } from "./helpers";
 
 const fixture = "/e2e/fixtures/agent-run-cards.html";
-const cardShots = [
-  "cloud-running",
-  "cloud-finished",
-  "subagent-running",
-  "subagent-completed",
-  "stack",
-] as const;
-const themes = ["light", "dark"] as const;
-
-const docsDir = path.resolve(
-  fileURLToPath(new URL("../../../docs/subagent-card", import.meta.url)),
-);
-const artifactsDir = "/opt/cursor/artifacts/screenshots";
-
-async function saveShot(testInfo: TestInfo, name: string, sourcePath: string) {
-  await testInfo.attach(name, { contentType: "image/png", path: sourcePath });
-  if (process.env.UPDATE_AGENT_CARD_DOCS !== "1") return;
-  await mkdir(docsDir, { recursive: true });
-  await copyFile(sourcePath, path.join(docsDir, `${name}.png`));
-  await mkdir(artifactsDir, { recursive: true }).catch(() => undefined);
-  await copyFile(sourcePath, path.join(artifactsDir, `${name}.png`)).catch(() => undefined);
-}
 
 test("agent run cards match the Cursor panel and open a work dialog", async ({
   page,
@@ -62,20 +36,6 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   await runningCloud.getByTestId("agent-run-open-web-menu").click();
   await expect(page.getByRole("menuitem", { name: "Open in Web" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
-  const menuBox = await runningCloud.boundingBox();
-  expect(menuBox).toBeTruthy();
-  const menuPath = testInfo.outputPath("after-open-web-menu-dark.png");
-  await page.screenshot({
-    animations: "disabled",
-    path: menuPath,
-    clip: {
-      x: Math.max(0, menuBox!.x - 8),
-      y: Math.max(0, menuBox!.y - 8),
-      width: menuBox!.width + 16,
-      height: menuBox!.height + 120,
-    },
-  });
-  await saveShot(testInfo, "after-open-web-menu-dark", menuPath);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menuitem", { name: "Copy link" })).toHaveCount(0);
   await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
@@ -182,121 +142,5 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("agent-run-dialog")).toHaveCount(0);
 
-  for (const theme of themes) {
-    await page.goto(`${fixture}?theme=${theme}`);
-    await expect(page.getByTestId("cloud-agent-card").first()).toBeVisible();
-    for (const shot of cardShots) {
-      const target = page.getByTestId(`shot-${shot}`);
-      await expect(target).toBeVisible();
-      const screenshotPath = testInfo.outputPath(`after-${shot}-${theme}.png`);
-      await target.screenshot({ animations: "disabled", path: screenshotPath });
-      await saveShot(testInfo, `after-${shot}-${theme}`, screenshotPath);
-      if (theme === "light" && shot !== "stack") {
-        await saveShot(testInfo, `after-${shot}`, screenshotPath);
-      }
-      if (theme === "light" && shot === "stack") {
-        await saveShot(testInfo, "after-stack", screenshotPath);
-      }
-      if (theme === "dark" && shot === "cloud-finished") {
-        await saveShot(testInfo, "after-cloud-finished-dark", screenshotPath);
-      }
-    }
-    await page.getByTestId("shot-subagent-running").getByTestId("agent-run-open").click();
-    const workDialog = page.getByTestId("agent-run-dialog");
-    await expect(workDialog).toBeVisible();
-    await expect(workDialog.getByRole("heading", { name: "Prompt" })).toBeVisible();
-    await expect(workDialog.getByRole("heading", { name: "Progress" })).toBeVisible();
-    const dialogPath = testInfo.outputPath(`after-dialog-running-${theme}.png`);
-    await workDialog.screenshot({ animations: "disabled", path: dialogPath });
-    await saveShot(testInfo, `after-dialog-running-${theme}`, dialogPath);
-    await page.keyboard.press("Escape");
-    await page.getByTestId("shot-subagent-completed").getByTestId("agent-run-open").click();
-    const completedWork = page.getByTestId("agent-run-dialog");
-    await expect(completedWork).toBeVisible();
-    await expect(completedWork.getByRole("heading", { name: "Result" })).toBeVisible();
-    const completedPath = testInfo.outputPath(`after-dialog-completed-${theme}.png`);
-    await completedWork.screenshot({ animations: "disabled", path: completedPath });
-    await saveShot(testInfo, `after-dialog-completed-${theme}`, completedPath);
-    await page.keyboard.press("Escape");
-  }
-
   await captureScreenshot(page, testInfo, "agent-run-cards-dark");
-});
-
-test("legacy agent cards remain available for visual comparison", async ({ page }, testInfo) => {
-  for (const theme of themes) {
-    await page.goto(`${fixture}?gallery=legacy&theme=${theme}`);
-    await expect(page.getByTestId("legacy-cloud-agent-card")).toHaveCount(2);
-    await expect(page.getByTestId("legacy-subagent-card")).toHaveCount(2);
-    await expect(page.getByTestId("legacy-cloud-agent-card").first()).toContainText("running");
-    await expect(page.getByTestId("legacy-subagent-card").last()).toContainText("completed");
-
-    for (const shot of [
-      "cloud-running",
-      "cloud-finished",
-      "subagent-running",
-      "subagent-completed",
-    ] as const) {
-      const target = page.getByTestId(`shot-${shot}`);
-      await expect(target).toBeVisible();
-      const screenshotPath = testInfo.outputPath(`before-${shot}-${theme}.png`);
-      await target.screenshot({ animations: "disabled", path: screenshotPath });
-      await saveShot(testInfo, `before-${shot}-${theme}`, screenshotPath);
-      if (theme === "dark") {
-        await saveShot(testInfo, `before-${shot}`, screenshotPath);
-      }
-    }
-  }
-});
-
-test("standalone docs demo page is clickable without the app", async ({ page }, testInfo) => {
-  const demo = path.resolve(
-    fileURLToPath(new URL("../../../docs/subagent-card/demo.html", import.meta.url)),
-  );
-  await page.goto(pathToFileURL(demo).href);
-
-  const subagent = page.getByTestId("subagent-card");
-  const cloud = page.getByTestId("cloud-agent-card");
-  await expect(subagent).toHaveCount(2);
-  await expect(cloud).toHaveCount(2);
-  await expect(subagent.getByRole("link", { name: "View PR" })).toHaveCount(0);
-  await expect(subagent.getByRole("button", { name: "Open", exact: true })).toHaveCount(2);
-
-  const runningCloud = page.locator('[data-testid="cloud-agent-card"][data-status="running"]');
-  const finishedCloud = page.locator('[data-testid="cloud-agent-card"][data-status="finished"]');
-  await expect(runningCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
-  await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
-  await expect(finishedCloud.getByRole("link", { name: "View PR" })).toBeVisible();
-  await expect(finishedCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
-  await runningCloud.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: "Open in Web" })).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
-  const demoCardBox = await runningCloud.boundingBox();
-  expect(demoCardBox).toBeTruthy();
-  const demoMenuPath = testInfo.outputPath("after-demo-menu-dark.png");
-  await page.screenshot({
-    animations: "disabled",
-    path: demoMenuPath,
-    clip: {
-      x: Math.max(0, demoCardBox!.x - 8),
-      y: Math.max(0, demoCardBox!.y - 8),
-      width: demoCardBox!.width + 16,
-      height: demoCardBox!.height + 120,
-    },
-  });
-  await saveShot(testInfo, "after-demo-menu-dark", demoMenuPath);
-  await page.keyboard.press("Escape");
-
-  await subagent.first().getByTestId("agent-run-open").click();
-  const dialog = page.locator("dialog[open]");
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("heading", { name: "Prompt" })).toBeVisible();
-  await expect(dialog.getByRole("heading", { name: "Progress" })).toBeVisible();
-  await expect(dialog.getByRole("heading", { name: "Result" })).toHaveCount(0);
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-
-  const demoPath = testInfo.outputPath("after-demo-dark.png");
-  await page.screenshot({ animations: "disabled", path: demoPath, fullPage: true });
-  await saveShot(testInfo, "after-demo-dark", demoPath);
 });

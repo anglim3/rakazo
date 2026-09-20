@@ -2,10 +2,7 @@ import { setupI18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { useLingui } from "@lingui/react/macro";
 import type { MessageBlock } from "@rakazo/contracts";
-import { Badge } from "@rakazo/ui-web/components/ui/badge";
-import { Card, CardContent } from "@rakazo/ui-web/components/ui/card";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AgentRunCard, AgentRunStack } from "../../src/components/AgentRunCard";
 import { CloudAgentCard } from "../../src/components/CloudAgentCard";
@@ -14,7 +11,6 @@ import "../../src/styles.css";
 
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "light" ? "light" : "dark";
-const gallery = params.get("gallery") === "legacy" ? "legacy" : "current";
 document.documentElement.dataset.theme = theme;
 document.documentElement.style.colorScheme = theme;
 
@@ -64,84 +60,6 @@ const subagentCompleted: Extract<MessageBlock, { kind: "subagent" }> = {
   result: "Cards should stay compact with a status mark.",
 };
 
-function LegacyCloudAgentCard({
-  block,
-}: {
-  block: Extract<MessageBlock, { kind: "cloud_agent" }>;
-}) {
-  const content = (
-    <Card size="sm" className="w-80 max-w-full" data-testid="legacy-cloud-agent-card">
-      <CardContent className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-3">
-          <span className="font-medium" dir="auto">
-            {block.title}
-          </span>
-          <Badge
-            variant="secondary"
-            className={
-              block.status === "failed"
-                ? "text-destructive"
-                : block.status === "finished"
-                  ? "text-success"
-                  : "text-muted-foreground"
-            }
-          >
-            {block.status}
-          </Badge>
-        </div>
-        {block.prUrl ? (
-          <span className="text-muted-foreground">Pull request</span>
-        ) : block.branch ? (
-          <span className="text-muted-foreground" dir="auto">
-            {block.branch}
-          </span>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-  return block.prUrl ? (
-    <a href={block.prUrl} className="block max-w-full no-underline">
-      {content}
-    </a>
-  ) : (
-    content
-  );
-}
-
-function LegacySubagentCard({ block }: { block: Extract<MessageBlock, { kind: "subagent" }> }) {
-  const running = block.status === "running";
-  const failed = block.status === "failed";
-  return (
-    <div
-      data-testid="legacy-subagent-card"
-      className="w-[min(420px,90%)] rounded-[18px] border border-border bg-muted px-[18px] py-4"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[15px] font-medium text-foreground" dir="auto">
-          {block.name}
-        </span>
-        <span
-          className={`rounded-full px-[11px] py-1 text-[13px] ${
-            failed
-              ? "bg-destructive/15 text-destructive"
-              : running
-                ? "bg-warning/15 text-warning"
-                : "bg-success/15 text-success"
-          }`}
-        >
-          {running ? "subagent" : block.status}
-        </span>
-      </div>
-      <div className="mt-2 text-[13.5px] text-muted-foreground">{block.task}</div>
-      {block.progress || block.result ? (
-        <div className="mt-2.5 text-[14.5px] leading-[1.5] text-foreground/75">
-          {block.result || block.progress}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function Shot({ id, children }: { id: string; children: ReactNode }) {
   return (
     <div data-testid={id} className="w-fit max-w-full p-3">
@@ -159,7 +77,7 @@ function Case({ label, id, children }: { label: string; id: string; children: Re
   );
 }
 
-function CurrentGallery() {
+function Gallery() {
   const { t } = useLingui();
   const stackCount = 4;
   return (
@@ -220,50 +138,10 @@ function CurrentGallery() {
   );
 }
 
-const legacyGallery = (
-  <>
-    <Shot id="shot-cloud-running">
-      <LegacyCloudAgentCard block={cloudRunning} />
-    </Shot>
-    <Shot id="shot-cloud-finished">
-      <LegacyCloudAgentCard block={cloudFinished} />
-    </Shot>
-    <Shot id="shot-subagent-running">
-      <LegacySubagentCard block={subagentRunning} />
-    </Shot>
-    <Shot id="shot-subagent-completed">
-      <LegacySubagentCard block={subagentCompleted} />
-    </Shot>
-  </>
-);
-
-function DemoApp() {
-  const [theme, setTheme] = useState(params.get("theme") === "light" ? "light" : "dark");
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-  }, [theme]);
-
-  return (
-    <main className="flex min-h-screen flex-col gap-6 bg-background p-8 text-foreground">
-      {gallery === "current" ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            className="text-[13px] text-muted-foreground"
-            onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-          >
-            {theme === "dark" ? "Light" : "Dark"}
-          </button>
-        </div>
-      ) : null}
-      {gallery === "legacy" ? legacyGallery : <CurrentGallery />}
-    </main>
-  );
-}
-
 createRoot(document.getElementById("root")!).render(
   <I18nProvider i18n={i18n}>
-    <DemoApp />
+    <main className="flex min-h-screen flex-col gap-6 bg-background p-8 text-foreground">
+      <Gallery />
+    </main>
   </I18nProvider>,
 );
