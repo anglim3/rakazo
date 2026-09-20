@@ -122,8 +122,11 @@ describe("AgentRunCard", () => {
     expect(withStats).toContain("rounded-md");
     expect(withStats).toContain("border-foreground/20");
     expect(withStats).toContain("w-px");
-    expect(withStats).toContain("fill-current");
-    expect(withStats).not.toContain("bg-transparent");
+    expect(withStats).toContain('data-testid="agent-run-open-web-menu"');
+    expect(withStats).toContain("w-7");
+    expect(withStats).toContain("items-center");
+    expect(withStats).toContain("justify-center");
+    expect(withStats).toContain("p-0");
     expect(withStats).toContain('href="https://github.com/example/demo/pull/24"');
     expect(withStats).toContain('href="https://cursor.com/agents/abc"');
     expect(withoutStats).not.toContain("files changed");

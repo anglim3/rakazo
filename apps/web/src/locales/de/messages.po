@@ -1041,6 +1041,10 @@ msgstr "Mit E-Mail fortfahren"
 msgid "Copy"
 msgstr "Kopieren"
 
+#: src/components/AgentRunCard.tsx:227
+msgid "Copy link"
+msgstr "Link kopieren"
+
 #: src/pages/ScratchpadSection.tsx:56
 msgid "Could not add"
 msgstr "Hinzufügen fehlgeschlagen"
@@ -2381,6 +2385,7 @@ msgid "Monthly"
 msgstr "Monatlich"
 
 #: src/pages/Shell.tsx:5329
+#: src/components/AgentRunCard.tsx:209
 msgid "More"
 msgstr ""
 

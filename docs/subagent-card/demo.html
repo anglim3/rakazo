@@ -184,6 +184,10 @@
         text-decoration: none;
         cursor: pointer;
       }
+      .split-wrap {
+        position: relative;
+        display: inline-flex;
+      }
       .split {
         display: inline-flex;
         height: 32px;
@@ -196,22 +200,63 @@
         font: inherit;
         font-size: 14px;
         font-weight: 500;
-        text-decoration: none;
       }
-      .split span {
+      .split-main {
         display: inline-flex;
         align-items: center;
         gap: 6px;
         padding: 0 10px;
+        color: inherit;
+        text-decoration: none;
       }
-      .split i.div {
+      .split-main:hover,
+      .split-chev:hover {
+        background: var(--muted);
+      }
+      .split-div {
         width: 1px;
         align-self: stretch;
         background: color-mix(in srgb, var(--foreground) 20%, transparent);
       }
-      .split i.chev {
+      .split-chev {
+        display: flex;
         width: 28px;
+        height: 100%;
+        flex-shrink: 0;
+        align-items: center;
         justify-content: center;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+      .split-menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        z-index: 8;
+        min-width: 9rem;
+        padding: 4px;
+        border-radius: 8px;
+        background: var(--background);
+        box-shadow: 0 8px 24px var(--overlay);
+      }
+      .split-menu button {
+        display: block;
+        width: 100%;
+        border: 0;
+        border-radius: 6px;
+        padding: 6px 10px;
+        background: transparent;
+        color: var(--foreground);
+        font: inherit;
+        font-size: 13px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .split-menu button:hover {
+        background: var(--muted);
       }
       dialog {
         width: min(28rem, calc(100% - 2rem));
@@ -370,21 +415,56 @@
                 />
               </svg>
             </a>
-            <a class="split" href="https://cursor.com/agents/abc" target="_blank" rel="noreferrer">
-              <span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" />
-                  <path
-                    d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"
-                    stroke="currentColor"
-                    stroke-width="1.75"
-                  />
-                </svg>
-                Open in Web
+            <span class="split-wrap">
+              <span class="split">
+                <a
+                  class="split-main"
+                  href="https://cursor.com/agents/abc"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" />
+                    <path
+                      d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                    />
+                  </svg>
+                  Open in Web
+                </a>
+                <span class="split-div" aria-hidden="true"></span>
+                <button
+                  type="button"
+                  class="split-chev"
+                  aria-label="More"
+                  aria-haspopup="menu"
+                  data-testid="agent-run-open-web-menu"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M6 9l6 6 6-6"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
               </span>
-              <i class="div" aria-hidden="true"></i>
-              <i class="chev" aria-hidden="true">▼</i>
-            </a>
+              <div class="split-menu" hidden role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-open-url="https://cursor.com/agents/abc"
+                >
+                  Open in Web
+                </button>
+                <button type="button" role="menuitem" data-copy="https://cursor.com/agents/abc">
+                  Copy link
+                </button>
+              </div>
+            </span>
           </div>
         </article>
         <dialog id="finished">
@@ -409,21 +489,56 @@
             </span>
           </button>
           <div class="actions">
-            <a class="split" href="https://cursor.com/agents/abc" target="_blank" rel="noreferrer">
-              <span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" />
-                  <path
-                    d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"
-                    stroke="currentColor"
-                    stroke-width="1.75"
-                  />
-                </svg>
-                Open in Web
+            <span class="split-wrap">
+              <span class="split">
+                <a
+                  class="split-main"
+                  href="https://cursor.com/agents/abc"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" />
+                    <path
+                      d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                    />
+                  </svg>
+                  Open in Web
+                </a>
+                <span class="split-div" aria-hidden="true"></span>
+                <button
+                  type="button"
+                  class="split-chev"
+                  aria-label="More"
+                  aria-haspopup="menu"
+                  data-testid="agent-run-open-web-menu"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M6 9l6 6 6-6"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
               </span>
-              <i class="div" aria-hidden="true"></i>
-              <i class="chev" aria-hidden="true">▼</i>
-            </a>
+              <div class="split-menu" hidden role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-open-url="https://cursor.com/agents/abc"
+                >
+                  Open in Web
+                </button>
+                <button type="button" role="menuitem" data-copy="https://cursor.com/agents/abc">
+                  Copy link
+                </button>
+              </div>
+            </span>
           </div>
         </article>
         <dialog id="cloud-running">
@@ -447,14 +562,45 @@
       themeBtn.addEventListener("click", () => {
         setTheme(root.dataset.theme === "dark" ? "light" : "dark");
       });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        for (const openMenu of document.querySelectorAll(".split-menu")) openMenu.hidden = true;
+      });
       document.addEventListener("click", (event) => {
-        const open = event.target.closest("[data-open]");
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const chev = target.closest(".split-chev");
+        if (chev) {
+          const menu = chev.closest(".split-wrap")?.querySelector(".split-menu");
+          const wasOpen = menu && !menu.hidden;
+          for (const openMenu of document.querySelectorAll(".split-menu")) openMenu.hidden = true;
+          if (menu && !wasOpen) menu.hidden = false;
+          return;
+        }
+        const copy = target.closest("[data-copy]");
+        if (copy) {
+          const href = copy.getAttribute("data-copy");
+          if (href) void navigator.clipboard?.writeText(href);
+          const menu = copy.closest(".split-menu");
+          if (menu) menu.hidden = true;
+          return;
+        }
+        const openUrl = target.closest("[data-open-url]");
+        if (openUrl) {
+          const href = openUrl.getAttribute("data-open-url");
+          if (href) window.open(href, "_blank", "noopener,noreferrer");
+          const menu = openUrl.closest(".split-menu");
+          if (menu) menu.hidden = true;
+          return;
+        }
+        for (const openMenu of document.querySelectorAll(".split-menu")) openMenu.hidden = true;
+        const open = target.closest("[data-open]");
         if (open) {
           document.getElementById(open.getAttribute("data-open"))?.showModal();
           return;
         }
-        if (event.target.closest("[data-close]")) {
-          event.target.closest("dialog")?.close();
+        if (target.closest("[data-close]")) {
+          target.closest("dialog")?.close();
         }
       });
     </script>

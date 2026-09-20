@@ -1,10 +1,13 @@
 import type { MessageBlock } from "@rakazo/contracts";
 import { cloudAgentHttpsUrl, pullRequestNumberFromUrl } from "@rakazo/core";
+import * as Clipboard from "expo-clipboard";
 import type { ReactNode } from "react";
 import { Children, useState } from "react";
 import type { PressableProps, ViewProps } from "react-native";
 import { Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { resolveMobileAppearance } from "../lib/appearance";
 import { useI18n } from "../lib/i18n";
+import { presentMessageActionSheet } from "../lib/message-action-sheet";
 import { useMobileTokens } from "../lib/native";
 import { NativeSymbol } from "./native-symbol";
 
@@ -283,11 +286,8 @@ export function AgentRunCard({
                 );
               }
               return (
-                <Pressable
+                <View
                   key={href}
-                  accessibilityRole="link"
-                  accessibilityLabel={action.label}
-                  onPress={() => Linking.openURL(href).catch(() => undefined)}
                   style={{
                     flexDirection: "row",
                     alignItems: "stretch",
@@ -298,7 +298,10 @@ export function AgentRunCard({
                     backgroundColor: tokens.secondary,
                   }}
                 >
-                  <View
+                  <Pressable
+                    accessibilityRole="link"
+                    accessibilityLabel={action.label}
+                    onPress={() => Linking.openURL(href).catch(() => undefined)}
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
@@ -316,17 +319,42 @@ export function AgentRunCard({
                     <Text style={{ color: tokens.foreground, fontSize: 13, fontWeight: "500" }}>
                       {action.label}
                     </Text>
-                  </View>
+                  </Pressable>
                   <View style={{ width: 1, backgroundColor: chrome }} />
-                  <View style={{ width: 28, alignItems: "center", justifyContent: "center" }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("More")}
+                    onPress={() =>
+                      presentMessageActionSheet({
+                        actions: [
+                          {
+                            text: action.label,
+                            onPress: () => Linking.openURL(href).catch(() => undefined),
+                          },
+                          {
+                            text: t("Copy link"),
+                            onPress: () => Clipboard.setStringAsync(href).catch(() => undefined),
+                          },
+                        ],
+                        cancel: t("Cancel"),
+                        more: t("More"),
+                        colorScheme: resolveMobileAppearance(),
+                      })
+                    }
+                    style={{
+                      width: 28,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
                     <NativeSymbol
-                      ios="arrowtriangle.down.fill"
-                      android="caret-down"
-                      size={10}
+                      ios="chevron.down"
+                      android="chevron-down"
+                      size={12}
                       color={tokens.foreground}
                     />
-                  </View>
-                </Pressable>
+                  </Pressable>
+                </View>
               );
             })}
           </View>

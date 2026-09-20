@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
   buttonVariants,
   cn,
@@ -6,8 +7,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@rakazo/ui-web";
-import { ArrowUpRight, ChevronDown, GitPullRequest, Globe, Triangle } from "lucide-react";
+import { ArrowUpRight, ChevronDown, GitPullRequest, Globe } from "lucide-react";
 import type { ReactNode } from "react";
 import { Children, useState } from "react";
 
@@ -181,22 +186,49 @@ function CardAction({
       </a>
     );
   }
+  return <WebSplitAction href={action.href} label={action.label} />;
+}
+
+function WebSplitAction({ href, label }: { href: string; label: string }) {
+  const { t } = useLingui();
   return (
-    <a
-      href={action.href}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-foreground/20 bg-secondary text-sm font-medium text-foreground no-underline outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <span className="inline-flex items-center gap-1.5 px-2.5">
+    <div className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-foreground/20 bg-secondary text-sm font-medium text-foreground">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1.5 px-2.5 no-underline outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+      >
         <Globe className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-        {action.label}
-      </span>
+        {label}
+      </a>
       <span className="w-px self-stretch bg-foreground/20" aria-hidden="true" />
-      <span className="inline-flex w-7 items-center justify-center" aria-hidden="true">
-        <Triangle className="size-2 rotate-180 fill-current" strokeWidth={0} />
-      </span>
-    </a>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          data-testid="agent-run-open-web-menu"
+          aria-label={t`More`}
+          className="flex h-full w-7 shrink-0 items-center justify-center self-stretch border-0 bg-transparent p-0 text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ChevronDown className="size-3" strokeWidth={2} aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-36 w-auto">
+          <DropdownMenuItem
+            onClick={() => {
+              window.open(href, "_blank", "noopener,noreferrer");
+            }}
+          >
+            {label}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              void navigator.clipboard?.writeText(href).catch(() => undefined);
+            }}
+          >
+            {t`Copy link`}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 

@@ -1041,6 +1041,10 @@ msgstr "ईमेल से जारी रखें"
 msgid "Copy"
 msgstr "कॉपी करें"
 
+#: src/components/AgentRunCard.tsx:227
+msgid "Copy link"
+msgstr "लिंक कॉपी करें"
+
 #: src/pages/ScratchpadSection.tsx:56
 msgid "Could not add"
 msgstr "जोड़ा नहीं जा सका"
@@ -2381,6 +2385,7 @@ msgid "Monthly"
 msgstr "मासिक"
 
 #: src/pages/Shell.tsx:5329
+#: src/components/AgentRunCard.tsx:209
 msgid "More"
 msgstr ""
 

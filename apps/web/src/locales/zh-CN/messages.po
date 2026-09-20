@@ -1041,6 +1041,10 @@ msgstr "使用邮箱继续"
 msgid "Copy"
 msgstr "复制"
 
+#: src/components/AgentRunCard.tsx:227
+msgid "Copy link"
+msgstr "复制链接"
+
 #: src/pages/ScratchpadSection.tsx:56
 msgid "Could not add"
 msgstr "无法添加"
@@ -2381,6 +2385,7 @@ msgid "Monthly"
 msgstr "每月"
 
 #: src/pages/Shell.tsx:5329
+#: src/components/AgentRunCard.tsx:209
 msgid "More"
 msgstr ""
 

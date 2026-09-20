@@ -157,6 +157,7 @@ export const ZH_MESSAGES: Record<string, string> = {
   "Connected · {label}": "已连接 · {label}",
   "Connected and using {label}.": "已连接并正在使用 {label}。",
   Copy: "复制",
+  "Copy link": "复制链接",
   More: "更多",
   "Could not add source": "无法添加来源",
   "Could not archive bot": "无法归档 Bot",

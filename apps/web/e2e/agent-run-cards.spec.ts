@@ -58,6 +58,12 @@ test("agent run cards match the Cursor panel and open a work dialog", async ({
   );
   await expect(runningCloud).toContainText("Running");
   await expect(runningCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
+  await expect(runningCloud.getByTestId("agent-run-open-web-menu")).toBeVisible();
+  await runningCloud.getByTestId("agent-run-open-web-menu").click();
+  await expect(page.getByRole("menuitem", { name: "Open in Web" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menuitem", { name: "Copy link" })).toHaveCount(0);
   await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
   await expect(runningCloud).not.toContainText("View PR");
   await expect(runningCloud).not.toContainText("PR #");
@@ -248,6 +254,10 @@ test("standalone docs demo page is clickable without the app", async ({ page }, 
   await expect(runningCloud.getByRole("link", { name: "View PR" })).toHaveCount(0);
   await expect(finishedCloud.getByRole("link", { name: "View PR" })).toBeVisible();
   await expect(finishedCloud.getByRole("link", { name: "Open in Web" })).toBeVisible();
+  await runningCloud.getByRole("button", { name: "More" }).click();
+  await expect(page.getByRole("menuitem", { name: "Open in Web" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await subagent.first().getByTestId("agent-run-open").click();
   const dialog = page.locator("dialog[open]");
