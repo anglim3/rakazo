@@ -96,6 +96,7 @@ export function AgentRunCard({
   const detailLinks = links ?? [];
   const cardActions = actions ?? [];
   const pill = pillColors(tone, tokens);
+  const chrome = `${String(tokens.foreground)}33`;
 
   return (
     <>
@@ -266,8 +267,8 @@ export function AgentRunCard({
                     overflow: "hidden",
                     borderRadius: 6,
                     borderWidth: 1,
-                    borderColor: tokens.border,
-                    backgroundColor: tokens.background,
+                    borderColor: chrome,
+                    backgroundColor: tokens.secondary,
                   }}
                 >
                   <View
@@ -289,7 +290,7 @@ export function AgentRunCard({
                       {action.label}
                     </Text>
                   </View>
-                  <View style={{ width: 1, backgroundColor: tokens.border }} />
+                  <View style={{ width: 1, backgroundColor: chrome }} />
                   <View style={{ width: 28, alignItems: "center", justifyContent: "center" }}>
                     <NativeSymbol
                       ios="arrowtriangle.down.fill"

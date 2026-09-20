@@ -153,13 +153,13 @@ function ActionLink({ action }: { action: AgentRunAction }) {
       href={action.href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background text-sm font-medium text-foreground no-underline outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+      className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-foreground/20 bg-secondary text-sm font-medium text-foreground no-underline outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="inline-flex items-center gap-1.5 px-2.5">
         <Globe className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
         {action.label}
       </span>
-      <span className="w-px self-stretch bg-border" aria-hidden="true" />
+      <span className="w-px self-stretch bg-foreground/20" aria-hidden="true" />
       <span className="inline-flex w-7 items-center justify-center" aria-hidden="true">
         <Triangle className="size-2 rotate-180 fill-current" strokeWidth={0} />
       </span>

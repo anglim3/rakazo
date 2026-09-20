@@ -108,8 +108,7 @@ describe("AgentRunCard", () => {
     expect(withStats).toContain("View PR");
     expect(withStats).toContain("Open in Web");
     expect(withStats).toContain("rounded-md");
-    expect(withStats).toContain("border-border");
-    expect(withStats).toContain("bg-background");
+    expect(withStats).toContain("border-foreground/20");
     expect(withStats).toContain("w-px");
     expect(withStats).toContain("fill-current");
     expect(withStats).not.toContain("bg-transparent");
