@@ -1,9 +1,8 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import type { MessageBlock } from "@rakazo/contracts";
 import { cloudAgentHttpsUrl } from "@rakazo/core";
-import { GitBranch, GitPullRequest } from "lucide-react";
 import type { AgentRunTone } from "./AgentRunCard";
-import { AgentRunCard } from "./AgentRunCard";
+import { AgentRunCard, AgentRunStack } from "./AgentRunCard";
 
 function cloudAgentTone(
   status: Extract<MessageBlock, { kind: "cloud_agent" }>["status"],
@@ -30,30 +29,19 @@ export function CloudAgentCard({
         : block.status === "cancelled"
           ? t`cancelled`
           : t`failed`;
-  const footer = prHref ? (
-    <span className="inline-flex min-w-0 items-center gap-1 truncate rounded-md bg-secondary px-1.5 py-0.5">
-      <GitPullRequest aria-hidden className="size-3 shrink-0" strokeWidth={2} />
-      <Trans>Pull request</Trans>
-    </span>
-  ) : block.branch ? (
-    <span
-      className="inline-flex min-w-0 items-center gap-1 truncate rounded-md bg-secondary px-1.5 py-0.5 font-mono"
-      dir="auto"
-    >
-      <GitBranch aria-hidden className="size-3 shrink-0" strokeWidth={2} />
-      {block.branch}
-    </span>
-  ) : null;
+  const summary = prHref ? t`Pull request` : block.branch;
 
   return (
-    <AgentRunCard
-      testId="cloud-agent-card"
-      title={block.title}
-      tone={cloudAgentTone(block.status)}
-      status={block.status}
-      statusLabel={statusLabel}
-      href={href}
-      footer={footer}
-    />
+    <AgentRunStack>
+      <AgentRunCard
+        testId="cloud-agent-card"
+        title={block.title}
+        summary={summary}
+        tone={cloudAgentTone(block.status)}
+        status={block.status}
+        statusLabel={statusLabel}
+        href={href}
+      />
+    </AgentRunStack>
   );
 }

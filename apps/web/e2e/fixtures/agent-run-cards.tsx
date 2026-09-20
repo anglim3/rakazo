@@ -5,6 +5,7 @@ import { Badge } from "@rakazo/ui-web/components/ui/badge";
 import { Card, CardContent } from "@rakazo/ui-web/components/ui/card";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { AgentRunCard, AgentRunStack } from "../../src/components/AgentRunCard";
 import { CloudAgentCard } from "../../src/components/CloudAgentCard";
 import { SubagentCard } from "../../src/components/SubagentCard";
 import "../../src/styles.css";
@@ -154,6 +155,42 @@ const currentGallery = (
     </Shot>
     <Shot id="shot-subagent-completed">
       <SubagentCard block={subagentCompleted} />
+    </Shot>
+    <Shot id="shot-stack">
+      <AgentRunStack>
+        <AgentRunCard
+          testId="stack-running-a"
+          title="Map the message card layout"
+          summary="Searching files · Explore"
+          tone="running"
+          status="running"
+          statusLabel="running"
+        />
+        <AgentRunCard
+          testId="stack-running-b"
+          title="Draft the pull request body"
+          summary="Writing summary · Writer"
+          tone="running"
+          status="running"
+          statusLabel="running"
+        />
+        <AgentRunCard
+          testId="stack-running-c"
+          title="Check locale catalogs"
+          summary="Reading strings · Review"
+          tone="running"
+          status="running"
+          statusLabel="running"
+        />
+        <AgentRunCard
+          testId="stack-pending"
+          title="Queue a follow-up pass"
+          summary="Pending · Review"
+          tone="cancelled"
+          status="cancelled"
+          statusLabel="cancelled"
+        />
+      </AgentRunStack>
     </Shot>
   </>
 );

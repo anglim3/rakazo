@@ -40,6 +40,8 @@ test("agent run cards match the compact panel layout", async ({ page }, testInfo
   await expect(runningCloud).toBeVisible();
   await expect(finishedCloud).toBeVisible();
   await expect(finishedCloud).toContainText("Pull request");
+  await expect(page.getByTestId("agent-run-stack")).toHaveCount(5);
+  await expect(page.getByTestId("shot-stack").getByTestId("agent-run-stack")).toBeVisible();
   await expect(finishedCloud.locator("xpath=ancestor::a[1]")).toHaveAttribute(
     "href",
     "https://github.com/example/demo/pull/1",
@@ -48,17 +50,17 @@ test("agent run cards match the compact panel layout", async ({ page }, testInfo
 
   await expect(subagent.first()).toHaveAttribute("data-status", "running");
   await expect(subagent.last()).toHaveAttribute("data-status", "completed");
+  await expect(subagent.first()).toContainText("Map the message card layout");
   await expect(subagent.first()).toContainText("Searching the thread renderer");
   await expect(subagent.last()).toContainText("Cards should stay compact");
-  await expect(subagent.first()).not.toContainText(
-    "Map the message card layout in Shell and mobile",
-  );
 
   const box = await runningCloud.boundingBox();
   expect(box).toBeTruthy();
   expect(box!.width).toBeGreaterThanOrEqual(320);
   expect(box!.width).toBeLessThanOrEqual(420);
 
+  await page.goto(`${fixture}?theme=light`);
+  await expect(page.getByTestId("cloud-agent-card").first()).toBeVisible();
   for (const shot of shots) {
     const target = page.getByTestId(`shot-${shot}`);
     await expect(target).toBeVisible();
@@ -66,17 +68,19 @@ test("agent run cards match the compact panel layout", async ({ page }, testInfo
     await target.screenshot({ animations: "disabled", path: screenshotPath });
     await saveShot(testInfo, `after-${shot}`, screenshotPath);
   }
+  const stackPath = testInfo.outputPath("after-stack.png");
+  await page.getByTestId("shot-stack").screenshot({ animations: "disabled", path: stackPath });
+  await saveShot(testInfo, "after-stack", stackPath);
 
-  await page.goto(`${fixture}?theme=light`);
-  await expect(page.getByTestId("cloud-agent-card").first()).toBeVisible();
-  const lightPath = testInfo.outputPath("after-cloud-finished-light.png");
+  await page.goto(`${fixture}?theme=dark`);
+  const darkFinished = testInfo.outputPath("after-cloud-finished-dark.png");
   await page.getByTestId("shot-cloud-finished").screenshot({
     animations: "disabled",
-    path: lightPath,
+    path: darkFinished,
   });
-  await saveShot(testInfo, "after-cloud-finished-light", lightPath);
+  await saveShot(testInfo, "after-cloud-finished-dark", darkFinished);
 
-  await captureScreenshot(page, testInfo, "agent-run-cards-light");
+  await captureScreenshot(page, testInfo, "agent-run-cards-dark");
 });
 
 test("legacy agent cards remain available for visual comparison", async ({ page }, testInfo) => {
