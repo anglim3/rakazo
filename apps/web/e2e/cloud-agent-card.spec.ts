@@ -15,8 +15,9 @@ test("renders a compact cloud agent card from an emulator launch", async ({ page
 
   const card = page.getByTestId("cloud-agent-card");
   await expect(card).toBeVisible({ timeout: 60_000 });
-  await expect(card).toContainText(/running|finished|Add a README|launching|Cloud agent/i);
-  await expect(card).toContainText("finished", { timeout: 60_000 });
+  await expect(card).toContainText(/Add a README|Cloud agent/i);
+  await expect(card).toHaveAttribute("data-status", /running|finished/);
+  await expect(card).toHaveAttribute("data-status", "finished", { timeout: 60_000 });
   await expect(card).toContainText("Pull request");
   await expect(card.locator("..")).toHaveAttribute(
     "href",
