@@ -15,13 +15,23 @@ test("renders a compact cloud agent card from an emulator launch", async ({ page
 
   const card = page.getByTestId("cloud-agent-card");
   await expect(card).toBeVisible({ timeout: 60_000 });
-  await expect(card).toContainText(/running|finished|Add a README|launching|Cloud agent/i);
-  await expect(card).toContainText("finished", { timeout: 60_000 });
-  await expect(card).toContainText("Pull request");
-  await expect(card.locator("..")).toHaveAttribute(
+  await expect(card).toContainText(/Add a README|Cloud agent/i);
+  await expect(card).toHaveAttribute("data-status", /running|finished/);
+  await expect(card).toHaveAttribute("data-status", "finished", { timeout: 60_000 });
+  await expect(card).toContainText("Done");
+  await expect(card.getByRole("link", { name: "View PR" })).toHaveAttribute(
     "href",
     "https://github.com/example/demo/pull/1",
   );
+  await card.locator("button[aria-haspopup='dialog']").click();
+  const dialog = page.getByTestId("agent-run-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "View PR" })).toHaveAttribute(
+    "href",
+    "https://github.com/example/demo/pull/1",
+  );
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
   await captureScreenshot(page, testInfo, "cloud-agent-card");
 
   await expect

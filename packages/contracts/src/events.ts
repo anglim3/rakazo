@@ -185,6 +185,9 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     branch: z.string().optional(),
     prUrl: z.string().optional(),
     latestRunId: z.string().optional(),
+    filesChanged: z.number().int().nonnegative().optional(),
+    additions: z.number().int().nonnegative().optional(),
+    deletions: z.number().int().nonnegative().optional(),
   }),
   z.object({
     kind: z.literal("skill_draft"),

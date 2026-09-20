@@ -10,10 +10,30 @@ export function cloudAgentHttpsUrl(value: string | null | undefined): string | u
   }
 }
 
+export function pullRequestNumberFromUrl(value: string | null | undefined): number | undefined {
+  const url = cloudAgentHttpsUrl(value);
+  if (!url) return undefined;
+  try {
+    const match = new URL(url).pathname.match(/\/(?:pulls?|merge[_-]?requests?)\/(\d+)(?:\/|$)/i);
+    if (!match) return undefined;
+    const n = Number(match[1]);
+    return Number.isInteger(n) && n > 0 ? n : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function optionalCloudAgentCount(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
 export function cloudAgentBlockFromPayload(
   payload: Record<string, unknown>,
 ): Extract<MessageBlock, { kind: "cloud_agent" }> {
   const status = payload.status;
+  const filesChanged = optionalCloudAgentCount(payload.filesChanged);
+  const additions = optionalCloudAgentCount(payload.additions);
+  const deletions = optionalCloudAgentCount(payload.deletions);
   return {
     kind: "cloud_agent",
     agentId: String(payload.agentId ?? ""),
@@ -24,5 +44,8 @@ export function cloudAgentBlockFromPayload(
     ...(payload.branch ? { branch: String(payload.branch) } : {}),
     ...(cloudAgentHttpsUrl(String(payload.prUrl ?? "")) ? { prUrl: String(payload.prUrl) } : {}),
     ...(payload.latestRunId ? { latestRunId: String(payload.latestRunId) } : {}),
+    ...(filesChanged !== undefined ? { filesChanged } : {}),
+    ...(additions !== undefined ? { additions } : {}),
+    ...(deletions !== undefined ? { deletions } : {}),
   };
 }

@@ -102,6 +102,10 @@ msgstr "{botName}의 컴퓨터"
 msgid "{days}d ago"
 msgstr "{days}일 전"
 
+#: src/components/CloudAgentCard.tsx:36
+msgid "{filesChanged} files changed"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:138
 msgid "{hours}h ago"
 msgstr "{hours}시간 전"
@@ -1036,6 +1040,10 @@ msgstr "이메일로 계속하기"
 #: src/pages/Shell.tsx:5347
 msgid "Copy"
 msgstr "복사"
+
+#: src/components/AgentRunCard.tsx:227
+msgid "Copy link"
+msgstr "링크 복사"
 
 #: src/pages/ScratchpadSection.tsx:56
 msgid "Could not add"
@@ -2377,6 +2385,7 @@ msgid "Monthly"
 msgstr "매월"
 
 #: src/pages/Shell.tsx:5329
+#: src/components/AgentRunCard.tsx:209
 msgid "More"
 msgstr ""
 
@@ -2624,6 +2633,7 @@ msgstr ""
 #: src/pages/ScratchpadSection.tsx:159
 #: src/pages/Shell.tsx:3387
 #: src/pages/Shell.tsx:3392
+#: src/components/SubagentCard.tsx:41
 msgid "Open"
 msgstr "열기"
 
@@ -2635,6 +2645,10 @@ msgstr "{0} 열기"
 #: src/pages/Shell.tsx:3355
 msgid "Open in full window"
 msgstr "전체 창으로 열기"
+
+#: src/components/CloudAgentCard.tsx:48
+msgid "Open in Web"
+msgstr ""
 
 #: src/pages/Shell.tsx:3089
 msgid "Open navigation"
@@ -2758,6 +2772,10 @@ msgstr "재생 중…"
 msgid "POST to"
 msgstr "POST 대상"
 
+#: src/components/CloudAgentCard.tsx:33
+msgid "PR #{prNumber}"
+msgstr ""
+
 #. placeholder {0}: props.name
 #: src/components/ArtifactFileCard.tsx:65
 msgid "Preview {0}"
@@ -2771,8 +2789,16 @@ msgstr "Bot 전용"
 msgid "Private workspace with its own bots and groups."
 msgstr ""
 
+#: src/components/SubagentCard.tsx:28
+msgid "Progress"
+msgstr ""
+
 #: src/components/integrations/IntegrationSetup.tsx:182
 msgid "Project ID"
+msgstr ""
+
+#: src/components/SubagentCard.tsx:26
+msgid "Prompt"
 msgstr ""
 
 #: src/pages/MemorySettingsOverlay.tsx:219
@@ -3023,6 +3049,10 @@ msgstr "마지막으로 저장된 작업 공간을 복원합니다. 컴퓨터에
 
 #: src/components/ComputerUpdateProgress.tsx:53
 msgid "Restoring your workspace"
+msgstr ""
+
+#: src/components/SubagentCard.tsx:30
+msgid "Result"
 msgstr ""
 
 #: src/App.tsx:171
@@ -3733,6 +3763,10 @@ msgstr "확인 후 추가"
 #: src/pages/PluginsOverlay.tsx:1090
 msgid "Verifying…"
 msgstr "확인 중…"
+
+#: src/components/CloudAgentCard.tsx:46
+msgid "View PR"
+msgstr ""
 
 #: src/pages/SettingsOverlay.tsx:86
 #: src/pages/Shell.tsx:5138
