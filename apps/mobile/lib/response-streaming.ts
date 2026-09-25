@@ -38,12 +38,13 @@ export async function setResponseStreamingPreference(
   preference: ResponseStreamingPreference,
 ): Promise<ResponseStreamingPreference> {
   memoryPreference = preference;
+  // Paint the switch before SecureStore resolves.
+  notify();
   try {
     await SecureStore.setItemAsync(RESPONSE_STREAMING_STORAGE_KEY, preference);
   } catch {
     // Keep the in-memory preference when SecureStore is unavailable.
   }
-  notify();
   return preference;
 }
 

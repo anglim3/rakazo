@@ -1,4 +1,5 @@
-import { expect, type Page, type TestInfo, test } from "@playwright/test";
+import type { Page, TestInfo } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 const fixture = "/e2e/fixtures/response-streaming.html";
 

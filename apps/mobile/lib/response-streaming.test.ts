@@ -38,6 +38,30 @@ describe("mobile response streaming preference", () => {
     expect(listener).toHaveBeenCalledOnce();
   });
 
+  it("notifies subscribers before SecureStore finishes", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const { setItemAsync } = await import("expo-secure-store");
+    vi.mocked(setItemAsync).mockImplementation(async () => {
+      await gate;
+    });
+    const {
+      getCachedResponseStreamingEnabled,
+      setResponseStreamingPreference,
+      subscribeResponseStreaming,
+    } = await import("./response-streaming");
+    const listener = vi.fn();
+    subscribeResponseStreaming(listener);
+
+    const pending = setResponseStreamingPreference("on");
+    expect(getCachedResponseStreamingEnabled()).toBe(true);
+    expect(listener).toHaveBeenCalledOnce();
+    release();
+    await pending;
+  });
+
   it("normalizes an empty stored value to off", async () => {
     store.set(RESPONSE_STREAMING_STORAGE_KEY, "");
     const { loadResponseStreamingPreference } = await import("./response-streaming");
