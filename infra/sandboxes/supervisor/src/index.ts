@@ -66,6 +66,7 @@ import {
   normalizeWorkspaceRelative,
   parseObservation,
   preferComputerControl,
+  quiesceBrowserProfilesCommand,
   releaseAssignedScreen,
   resetManagedScreensCommand,
   type ScreenAssignment,
@@ -74,7 +75,6 @@ import {
   screenReleaseStopCommand,
   shouldReplayComputerActions,
   stopExtraScreenCommand,
-  stopScreensCommand,
   teardownReleasedScreen,
   toSandboxInput,
   withKeyedLock,
@@ -719,7 +719,8 @@ app.delete("/computers/:id/screen", async (c) => {
           throw new Error(result.stderr || "computer screen failed to stop");
         }
       }
-      if (assigned?.size === 0) computerScreens.delete(id);
+      // Keep an emptied registry. A missing one means the supervisor lost track of the
+      // container, and the next screen request then resets every desktop process in it.
     });
     return c.json({ ok: true });
   } catch (error) {
@@ -739,15 +740,12 @@ app.post("/computers/:id/stop", async (c) => {
     await withComputerScreenLock(id, async () => {
       const info = await container.inspect();
       if (info.State.Running) {
-        const screens = [...(computerScreens.get(id) ?? [])].map(([screenId, slot]) => ({
-          screenId,
-          index: slot.index,
-        }));
         try {
+          // Every profile on the home volume, not only screens still held in memory.
           const checkpoint = await runContainerCommand(container, [
             "bash",
             "-c",
-            stopScreensCommand(screens),
+            quiesceBrowserProfilesCommand(),
           ]);
           if (checkpoint.code !== 0)
             throw new Error(checkpoint.stderr || "bot browsers failed to stop");

@@ -386,8 +386,8 @@ export interface AgentRunRequest {
   resumeFromCheckpoint?: string;
   script?: ScriptedTurn[];
   /**
-   * Bot-message wakes may finish with no text and no tools (FYI silence).
-   * When set, skip synthetic empty-turn fallbacks.
+   * FYI bot-message wakes and scheduled routines may finish with no text.
+   * When set, skip synthetic empty-turn fallbacks (including after tools).
    */
   allowSilentEmpty?: boolean;
   /** Contextual fallback when a non-silent run produces no written response. */
@@ -430,7 +430,16 @@ export type AgentRuntimeEvent =
       actions?: Array<{ id: string; label: string }>;
     }
   | { type: "takeover"; reason: string }
-  | { type: "usage"; inputTokens: number; outputTokens: number; provider: string; model: string }
+  | {
+      type: "usage";
+      inputTokens: number;
+      outputTokens: number;
+      /** Cache hits and writes folded into inputTokens, kept apart so cost views can split them. */
+      cacheReadTokens: number;
+      cacheWriteTokens: number;
+      provider: string;
+      model: string;
+    }
   | { type: "checkpoint"; blob: string }
   | {
       type: "subagent";
@@ -507,6 +516,8 @@ export type BackgroundJob = {
     payload: BackgroundJobPayloads[Name];
     availableAt?: Date;
     replaceKey?: string;
+    /** Cap retried executions; omit to use the job queue's default. */
+    maxAttempts?: number;
   };
 }[BackgroundJobName];
 
@@ -805,4 +816,39 @@ export interface CloudAgentReplyRequest {
   prompt: string;
   images?: CloudAgentImage[];
   signal?: AbortSignal;
+}
+
+/**
+ * Optional auto-allow check for a consequential tool call. Core still runs when
+ * no hosted verifier is configured; the LLM judge is the default adapter.
+ */
+export interface AutoReviewCapabilities {
+  /** True when the adapter never leaves the process (tests / Playwright). */
+  offline?: boolean;
+  /** True when a hosted vendor key is not required. */
+  keyless?: boolean;
+}
+
+export type AutoReviewDecision = "pass" | "ask" | "error";
+
+export interface AutoReviewMatchingRule {
+  effect: string;
+  matchKind: string;
+  matchValue: string;
+}
+
+export interface AutoReviewRequest {
+  toolName: string;
+  connectorKind: string;
+  /** Caller must already redact secrets and sensitive keys. */
+  args: Record<string, unknown>;
+  userTask: string;
+  botDescription: string;
+  matchingRules: AutoReviewMatchingRule[];
+}
+
+export interface AutoReviewResult {
+  decision: AutoReviewDecision;
+  reason?: string;
+  model: string;
 }

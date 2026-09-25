@@ -111,6 +111,8 @@ export class ScriptedAgentRuntime implements AgentRuntime {
             type: "usage",
             inputTokens: 12,
             outputTokens: 40,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
             provider: "scripted",
             model: "scripted",
           };
@@ -217,6 +219,27 @@ export function inferScript(
             },
           },
         ],
+      },
+    ];
+  }
+  if (lower.includes("quote markdown fixture")) {
+    const marker = /quote markdown fixture\s+(\S+)/i.exec(prompt)?.[1] ?? "md-fixture";
+    return [
+      {
+        assistant: `${marker}
+1. list-a
+2. list-b
+
+| k | v |
+| --- | --- |
+| cell-a | cell-b |
+
+\`\`\`
+code-a
+---
+code-b
+\`\`\``,
+        complete: true,
       },
     ];
   }
@@ -336,6 +359,30 @@ export function inferScript(
       },
     ];
   }
+  if (
+    lower.includes("silence finish notifications") ||
+    lower.includes("turn off finish notifications")
+  ) {
+    return [
+      {
+        assistant: "silencing finish notifications.",
+        toolCalls: [{ name: "update_bot", args: { notifyOnFinish: false } }],
+        complete: true,
+      },
+    ];
+  }
+  if (
+    lower.includes("resume finish notifications") ||
+    lower.includes("turn on finish notifications")
+  ) {
+    return [
+      {
+        assistant: "enabling finish notifications.",
+        toolCalls: [{ name: "update_bot", args: { notifyOnFinish: true } }],
+        complete: true,
+      },
+    ];
+  }
   if (lower.includes("subagent") || lower.includes("delegate to a helper")) {
     return [
       {
@@ -420,11 +467,8 @@ export function inferScript(
     const filePath =
       /(?:called|named)\s+([A-Za-z0-9._/-]+)/i.exec(prompt)?.[1] ?? "notes/result.txt";
     return [
-      { assistant: "writing that into my home now." },
-      {
-        toolCalls: [{ name: "write_file", args: { path: filePath, content } }],
-        complete: true,
-      },
+      { toolCalls: [{ name: "write_file", args: { path: filePath, content } }] },
+      { assistant: "writing that into my home now.", complete: true },
     ];
   }
   if (lower.includes("remember")) {

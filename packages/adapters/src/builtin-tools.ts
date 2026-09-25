@@ -1,11 +1,63 @@
 import type { ConnectorTool } from "@rakazo/adapter-kit";
 import {
-  BotSecretDestination,
   BotSecretName,
+  botSecretDestinationSchema,
   SecretAskPurpose,
   SecretHttpRequest,
 } from "@rakazo/contracts";
 import { z } from "zod";
+import { allowPrivateHttpSecretOrigins } from "./bot-secrets.js";
+
+// The owner flag can land in process.env after static imports run (loadRootEnv
+// parses .env once the entry module is already executing), so the model-facing
+// surface is built lazily on first tool access instead of at module scope.
+let secretAskSurface:
+  | {
+      description: string;
+      inputSchema: ConnectorTool["inputSchema"];
+    }
+  | undefined;
+function secretAskToolSurface() {
+  const allowPrivateHttpOrigins = allowPrivateHttpSecretOrigins();
+  secretAskSurface ??= {
+    description: `Collect a credential in a masked field. Supply credential to save a named API credential for this bot and user at one ${
+      allowPrivateHttpOrigins
+        ? "HTTPS origin, or an HTTP origin on a private LAN host"
+        : "HTTPS origin"
+    }, or connectionId for a one-use connector code. Existing named credentials are reused unless replace is true. For website logins, CAPTCHA, passkeys, or anything that needs the live desktop, call request_takeover instead.`,
+    inputSchema: {
+      oneOf: [
+        {
+          type: "object",
+          properties: {
+            label: { type: "string" },
+            purpose: { type: "string", enum: SecretAskPurpose.options },
+            credential: z.toJSONSchema(
+              botSecretDestinationSchema({ allowPrivateHttpOrigin: allowPrivateHttpOrigins }),
+            ),
+            replace: {
+              type: "boolean",
+              description: "Ask the user to replace an existing credential value.",
+            },
+          },
+          required: ["label", "purpose", "credential"],
+          additionalProperties: false,
+        },
+        {
+          type: "object",
+          properties: {
+            label: { type: "string" },
+            purpose: { type: "string", enum: SecretAskPurpose.options },
+            connectionId: { type: "string" },
+          },
+          required: ["label", "purpose", "connectionId"],
+          additionalProperties: false,
+        },
+      ],
+    },
+  };
+  return secretAskSurface;
+}
 
 export const DELEGATION_TOOL_NAMES = new Set([
   "run_subagent",
@@ -137,10 +189,14 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "attach_file",
     description:
-      "Attach a workspace file from this bot's home to the chat thread as an image or common file. The file stays in place; users can open it from the message.",
+      "Attach a workspace file from this bot's home to the chat thread as an image or common file. The file stays in place; users can open it from the message and from the Artifacts tab. For a self-contained HTML page, document, or anything else meant to be opened and viewed on its own (not just downloaded) — give it name and description: a short human-readable title and a one-line summary of what it is. Skip them for an ordinary attachment like a log file or export. To UPDATE something you already made, call this again with the exact same name — it becomes a new version of that same artifact (visible in a version switcher) instead of a separate one; a different name always starts a new artifact.",
     inputSchema: {
       type: "object",
-      properties: { path: { type: "string" } },
+      properties: {
+        path: { type: "string" },
+        name: { type: "string" },
+        description: { type: "string" },
+      },
       required: ["path"],
     },
   },
@@ -228,37 +284,13 @@ export const builtinAgentTools: ConnectorTool[] = [
   },
   {
     name: "request_secret",
-    description:
-      "Collect a credential in a masked field. Supply credential to save a named API credential for this bot and user at one HTTPS origin, or connectionId for a one-use connector code. Existing named credentials are reused unless replace is true. For website logins, CAPTCHA, passkeys, or anything that needs the live desktop, call request_takeover instead.",
+    get description() {
+      return secretAskToolSurface().description;
+    },
     // Exactly one destination: credential XOR connectionId. Sibling optionals
     // looked schema-valid to models but the executor rejects both and neither.
-    inputSchema: {
-      oneOf: [
-        {
-          type: "object",
-          properties: {
-            label: { type: "string" },
-            purpose: { type: "string", enum: SecretAskPurpose.options },
-            credential: z.toJSONSchema(BotSecretDestination),
-            replace: {
-              type: "boolean",
-              description: "Ask the user to replace an existing credential value.",
-            },
-          },
-          required: ["label", "purpose", "credential"],
-          additionalProperties: false,
-        },
-        {
-          type: "object",
-          properties: {
-            label: { type: "string" },
-            purpose: { type: "string", enum: SecretAskPurpose.options },
-            connectionId: { type: "string" },
-          },
-          required: ["label", "purpose", "connectionId"],
-          additionalProperties: false,
-        },
-      ],
+    get inputSchema() {
+      return secretAskToolSurface().inputSchema;
     },
   },
   {
@@ -780,7 +812,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "update_bot",
     description:
-      "Update this bot's own profile fields that the user sees in chat: name (header and list label), title (short role line), and description. Call this when the user asks you to rename yourself or change your title/description. Do not claim you updated the profile without calling this tool.",
+      "Update this bot's own name (header and list label), title, description, avatar (profile picture or color/shape), or notifyOnFinish. Call this when the user asks you to rename yourself, change your title/description, change your profile picture, or turn finish notifications on or off. Do not claim you updated the profile without calling this tool.",
     inputSchema: {
       type: "object",
       properties: {
@@ -795,6 +827,25 @@ export const builtinAgentTools: ConnectorTool[] = [
         description: {
           type: "string",
           description: "Longer blurb describing what this bot does.",
+        },
+        color: {
+          type: "string",
+          description:
+            "Avatar color or encoded shape, e.g. #8B5CF6 or #8B5CF6::shape_3. Do not pass http URLs.",
+        },
+        artifact_id: {
+          type: "string",
+          description:
+            "Image artifact in this space to use as the profile picture. Prefer an image the user attached in this chat.",
+        },
+        use_attached_image: {
+          type: "boolean",
+          description:
+            "If true, use the latest image attached on this user message as the profile picture.",
+        },
+        notifyOnFinish: {
+          type: "boolean",
+          description: "true notifies the user when this bot finishes a run; false silences that.",
         },
       },
     },

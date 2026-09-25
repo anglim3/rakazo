@@ -51,6 +51,8 @@ describe("sealed screen capabilities", () => {
           }
         },
         attachHostClipboardPaste: () => {},
+        attachMobilePaste: () => {},
+        pasteHostText: () => false,
         // Embed imports are stripped for this smoke; stub the touch-keyboard
         // and trackpad bridges the same way as clipboard. Returning false
         // skips Keyboard / KeyTable / keysyms, which this harness does not provide.
@@ -147,6 +149,20 @@ describe("sealed screen capabilities", () => {
   });
   it.each(["http://public.example:49152/embed.html", "http://127.0.0.1:80/embed.html"])(
     "rejects disallowed local target %s",
+    (url) => {
+      expect(openScreenCapability(path(url), "fake-secret", 101)).toBeNull();
+    },
+  );
+  it.each(["http://100.64.0.1:49152/embed.html", "http://100.127.255.254:49152/embed.html"])(
+    "allows CGNAT 100.64/10 screen targets %s",
+    (url) => {
+      expect(openScreenCapability(path(url), "fake-secret", 101)?.target.hostname).toBe(
+        new URL(url).hostname,
+      );
+    },
+  );
+  it.each(["http://100.63.255.255:49152/embed.html", "http://100.128.0.1:49152/embed.html"])(
+    "rejects addresses outside CGNAT 100.64/10 %s",
     (url) => {
       expect(openScreenCapability(path(url), "fake-secret", 101)).toBeNull();
     },

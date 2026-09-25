@@ -41,6 +41,7 @@ import {
   computerSupportsUpdate,
   computerUpdateView,
   createVoiceProvider,
+  defaultCatalogModelId,
   deletePushToken,
   deploymentAutoReviewDefault,
   destroyBot,
@@ -57,6 +58,7 @@ import {
   McpOAuthBroker,
   mapScratchpadItem,
   modelCredentialDto,
+  pickReusableConnection,
   planLiveConnectionSync,
   prepareApiInstall,
   prepareGraphqlInstall,
@@ -80,11 +82,12 @@ import {
   verifyMcpInstall,
 } from "@rakazo/adapters";
 import type { Auth } from "@rakazo/auth";
-import type { Actor, ComputerStatus, McpServer, Me, SpaceNavigation } from "@rakazo/contracts";
+import type { Actor, Bot, ComputerStatus, McpServer, Me, SpaceNavigation } from "@rakazo/contracts";
 import {
   appContract,
   IntegrationProviderIdSchema,
   OPENAI_COMPATIBLE_PROVIDER_ID,
+  usableModelId,
 } from "@rakazo/contracts";
 import {
   ACTIVE_RUN_STATUSES,
@@ -138,7 +141,16 @@ import { getLogger } from "@rakazo/logging";
 import { deleteAgentSecret, listAgentSecrets, putAgentSecret } from "./agent-secrets.js";
 import { createAgentSkillsService } from "./agent-skills.js";
 import { aiConsentStatus, allowAiConsent } from "./ai-consent.js";
-import { createOwnedArtifact, getOwnedArtifact, getSpaceArtifact } from "./artifacts.js";
+import {
+  ArtifactListCursorError,
+  createOwnedArtifact,
+  deleteArtifactFamily,
+  getOwnedArtifact,
+  getSpaceArtifact,
+  getSpaceArtifactById,
+  listArtifactVersions,
+  listSpaceArtifacts,
+} from "./artifacts.js";
 import { botProfileLabelsChanged, commitBotUpdate } from "./bot-update.js";
 import {
   executionBlocksUserTakeover,
@@ -473,6 +485,51 @@ function mapSpaceLifecycleError(error: unknown): unknown {
   return error;
 }
 
+const BOT_INTRO_PROMPT =
+  "You were just created. In one reply, say what you understood your role to be from your title, description and instructions, and ask for anything you need to get started.";
+
+/**
+ * A freshly created bot otherwise sits silent until someone hands it real work,
+ * so a misunderstood role goes unnoticed until it costs a run. Queue one
+ * invisible-prompt turn (like a routine or skill test run) so its first
+ * message states how it read its own instructions. The executor gives the
+ * "created" trigger no tools (see executor.ts), so this turn can only speak.
+ */
+export async function enqueueBotIntroRun(deps: RouterDeps, actor: Actor, bot: Bot): Promise<void> {
+  const threadId = bot.threadId;
+  if (!threadId) return;
+  // Scripted is the deterministic test/eval runtime, not a real deployment: an
+  // extra automatic run there competes with whatever response a test or eval
+  // harness queued next, for a bot it doesn't otherwise get to opt out of.
+  if (deps.env.agentRuntime === "scripted") return;
+  if ((await modelSetup(deps, actor)).needsModel) return;
+  const run = await deps.prisma.$transaction(async (tx) => {
+    const task = await tx.task.create({
+      data: {
+        spaceId: actor.spaceId,
+        botId: bot.id,
+        threadId,
+        userId: actor.userId,
+        prompt: BOT_INTRO_PROMPT,
+        status: "queued",
+      },
+    });
+    return tx.run.create({
+      data: {
+        spaceId: actor.spaceId,
+        botId: bot.id,
+        threadId,
+        taskId: task.id,
+        userId: actor.userId,
+        status: "queued",
+        trigger: "created",
+      },
+      select: { id: true },
+    });
+  });
+  await deps.jobs.enqueue(runContinueJob(run.id));
+}
+
 export function createRouter(deps: RouterDeps) {
   const os = implement(appContract).$context<{ actor: Actor | null; signal?: AbortSignal }>();
   const repos = createRepos(deps.prisma);
@@ -778,11 +835,10 @@ export function createRouter(deps: RouterDeps) {
           },
           orderBy: newestModelCredentialOrder,
         });
-        const compatibleRows = rows.filter((row) => row.provider === OPENAI_COMPATIBLE_PROVIDER_ID);
-        const secrets = compatibleRows.length
+        const secrets = rows.length
           ? await deps.prisma.secret.findMany({
               where: {
-                id: { in: compatibleRows.map((row) => row.secretId) },
+                id: { in: rows.map((row) => row.secretId) },
                 userId: context.actor.userId,
                 spaceId: null,
               },
@@ -811,26 +867,23 @@ export function createRouter(deps: RouterDeps) {
         try {
           let previousPlaintext: string | undefined;
           let omitVisionModelIds = false;
-          if (input.provider === OPENAI_COMPATIBLE_PROVIDER_ID) {
-            const credential = await findModelCredential(
-              deps.prisma,
-              context.actor,
-              input.provider,
-            );
-            if (credential) {
-              const secret = await deps.prisma.secret.findFirst({
-                where: { id: credential.secretId, userId: context.actor.userId, spaceId: null },
-                select: { ciphertext: true },
-              });
-              if (secret) {
-                try {
-                  previousPlaintext = deps.secrets.load(secret.ciphertext, credential.secretId);
-                } catch (error) {
-                  // Explicit key replacement must still succeed when the prior
-                  // ciphertext is unreadable. Omit visionModelIds so a partial
-                  // one-model list does not wipe other enabled models; DB
-                  // supportsImages + defaultModel remain the legacy fallback.
-                  if (input.apiKey === undefined) throw error;
+          const credential = await findModelCredential(deps.prisma, context.actor, input.provider);
+          if (credential) {
+            const secret = await deps.prisma.secret.findFirst({
+              where: { id: credential.secretId, userId: context.actor.userId, spaceId: null },
+              select: { ciphertext: true },
+            });
+            if (secret) {
+              try {
+                previousPlaintext = deps.secrets.load(secret.ciphertext, credential.secretId);
+              } catch (error) {
+                // Explicit key replacement must still succeed when the prior
+                // ciphertext is unreadable. For OpenAI-compatible connections,
+                // omit visionModelIds so a partial one-model list does not wipe
+                // other enabled models; DB supportsImages + defaultModel remain
+                // the legacy fallback.
+                if (input.apiKey === undefined) throw error;
+                if (input.provider === OPENAI_COMPATIBLE_PROVIDER_ID) {
                   omitVisionModelIds = true;
                 }
               }
@@ -944,11 +997,16 @@ export function createRouter(deps: RouterDeps) {
         return found;
       }),
       create: authed.bots.create.handler(async ({ context, input }) => {
+        let bot: Bot;
         try {
-          return await repos.createBot(context.actor, input);
+          bot = await repos.createBot(context.actor, input);
         } catch (error) {
           throw mapSpaceLifecycleError(error);
         }
+        await enqueueBotIntroRun(deps, context.actor, bot).catch((error) => {
+          getLogger().error("bot intro run enqueue", error);
+        });
+        return bot;
       }),
       duplicate: authed.bots.duplicate.handler(async ({ context, input }) => {
         const source = await repos.getBot(context.actor, input.botId);
@@ -3359,6 +3417,28 @@ export function createRouter(deps: RouterDeps) {
         // row that is inserted after SELECT FOR UPDATE and before remote revoke.
         const row = await deps.prisma.$transaction(async (tx) => {
           await lockProviderConnectionScope(tx, context.actor, input.connectorId, input.provider);
+          const existing = await tx.connection.findMany({
+            where: {
+              spaceId: context.actor.spaceId,
+              userId: context.actor.userId,
+              connectorId: input.connectorId,
+              provider: input.provider,
+            },
+            select: { id: true, status: true },
+            orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+          });
+          const reusable = pickReusableConnection(existing);
+          if (reusable) {
+            return tx.connection.update({
+              where: { id: reusable.id },
+              data: {
+                displayName: input.displayName,
+                status: "pending",
+                providerRef: null,
+                metadata: {},
+              },
+            });
+          }
           return tx.connection.create({
             data: {
               spaceId: context.actor.spaceId,
@@ -4431,10 +4511,26 @@ export function createRouter(deps: RouterDeps) {
           groupId: row.groupId,
           runId: row.runId,
           name: row.name,
+          description: row.description,
           mimeType: row.mimeType,
           size: row.size,
+          version: row.version,
           createdAt: row.createdAt.toISOString(),
         }));
+      }),
+      listSpace: authed.artifacts.listSpace.handler(async ({ context, input }) => {
+        if (input.botId) await repos.getBot(context.actor, input.botId);
+        try {
+          return await listSpaceArtifacts(deps, context.actor, input);
+        } catch (error) {
+          if (error instanceof ArtifactListCursorError) {
+            throw new ORPCError("BAD_REQUEST", { message: error.message });
+          }
+          throw error;
+        }
+      }),
+      listVersions: authed.artifacts.listVersions.handler(async ({ context, input }) => {
+        return listArtifactVersions(deps, context.actor, input);
       }),
       create: authed.artifacts.create.handler(async ({ context, input }) => {
         const botId = input.botId
@@ -4471,6 +4567,12 @@ export function createRouter(deps: RouterDeps) {
           if (error instanceof IsolationError) throw error;
           throw error;
         }
+      }),
+      getById: authed.artifacts.getById.handler(async ({ context, input }) => {
+        return getSpaceArtifactById(deps, context.actor, input);
+      }),
+      remove: authed.artifacts.remove.handler(async ({ context, input }) => {
+        return deleteArtifactFamily(deps, context.actor, { familyId: input.artifactId });
       }),
     },
     usage: {
@@ -4782,6 +4884,7 @@ async function spaceNavigationDto(
           (membership.space.deletingAt === null || membership.space.deletingAt < staleClaimBefore),
         bots: spaceBots.map((bot) => ({
           id: bot.id,
+          parentBotId: bot.parentBotId,
           spaceId: bot.spaceId,
           name: bot.name,
           title: bot.title,
@@ -5139,7 +5242,10 @@ async function persistModelCredential(
               },
             });
         throwIfAborted(input.signal);
-        const defaultModel = input.modelId ?? deps.env.defaultModel;
+        const defaultModel =
+          usableModelId(input.modelId) ??
+          defaultCatalogModelId(input.provider) ??
+          usableModelId(deps.env.defaultModel);
         await selectSpaceModelPreference(tx, actor, credential.id, defaultModel);
         throwIfAborted(input.signal);
         if (existing) {

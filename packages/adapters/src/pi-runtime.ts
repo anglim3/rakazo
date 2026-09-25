@@ -25,6 +25,7 @@ import type {
   AgentToolExecutionResult,
   ConnectorTool,
 } from "@rakazo/adapter-kit";
+import { usableModelId } from "@rakazo/contracts";
 import { getLogger } from "@rakazo/logging";
 import { isToolPauseResult } from "./approval-effect.js";
 import { builtinAgentTools, DELEGATION_TOOL_NAMES } from "./builtin-tools.js";
@@ -46,6 +47,7 @@ import {
   clipToolResultText,
   MODEL_STREAM_MAX_RETRIES,
   MODEL_STREAM_TIMEOUT_MS,
+  REASONING_MODEL_MAX_TOKENS,
   resolveCompletionMaxTokens,
 } from "./pi-runtime-limits.js";
 import {
@@ -79,6 +81,8 @@ const MAX_PARALLEL_SUBAGENTS = 4;
 const MAX_SILENT_TOOL_CONTINUATIONS = 3;
 const SILENT_TOOL_CONTINUATION_PROMPT =
   "Continue the original task from the latest tool result. Do not stop after a tool call; use any remaining tools needed, then give the user the final answer.";
+const SILENT_ALLOWED_TOOL_CONTINUATION_PROMPT =
+  "Continue the original task from the latest tool result. If you were instructed to stay silent when there is nothing to report, follow that instruction for the entire final assistant reply. Otherwise use any remaining tools needed, then give the user the final answer.";
 const TOOL_FINAL_RESPONSE_FALLBACK =
   "I completed the tool step but could not produce a final response. Please ask me to continue.";
 const DEFAULT_COMPUTER_SCREENSHOTS_TO_KEEP = 2;
@@ -260,7 +264,10 @@ export class PiAgentRuntime implements AgentRuntime {
             models.streamSimple(m, ctx, reliableStreamOptions(m, options, request.model.maxTokens)),
           getApiKey: async () => apiKey,
           transformContext: async (messages) =>
-            pruneComputerScreenshotContext(messages, request.model.maxImagesPerPrompt),
+            pruneComputerScreenshotContext(
+              pruneStalePageStateContext(messages),
+              request.model.maxImagesPerPrompt,
+            ),
           prepareNextTurnWithContext: async () => {
             if (!request.claimSteering) return undefined;
             const steering = await request.claimSteering([...seenSteeringIds]);
@@ -356,7 +363,9 @@ export class PiAgentRuntime implements AgentRuntime {
                 silentToolContinuations += 1;
                 agent.followUp({
                   role: "user",
-                  content: SILENT_TOOL_CONTINUATION_PROMPT,
+                  content: request.allowSilentEmpty
+                    ? SILENT_ALLOWED_TOOL_CONTINUATION_PROMPT
+                    : SILENT_TOOL_CONTINUATION_PROMPT,
                   timestamp: Date.now(),
                 });
               }
@@ -369,11 +378,18 @@ export class PiAgentRuntime implements AgentRuntime {
               queue.push({ type: "text", text });
             }
             if ("usage" in event.message && event.message.usage) {
+              const usage = billedPromptTokens(event.message.usage);
               queue.push({
                 type: "usage",
-                ...billedPromptTokens(event.message.usage),
+                ...usage,
                 provider: model.provider,
                 model: model.id,
+              });
+              getLogger().debug("model usage", {
+                runId: request.runId,
+                provider: model.provider,
+                model: model.id,
+                ...usage,
               });
             }
           }
@@ -414,10 +430,15 @@ export class PiAgentRuntime implements AgentRuntime {
             streamed = budgetMessage;
           }
         } else if (!host.pausePending && toolWorkPendingFinal) {
-          // Discard cumulative pre-tool narration from the terminal payload and make the
-          // missing final response visible to the user instead of silently completing.
-          streamed = TOOL_FINAL_RESPONSE_FALLBACK;
-          queue.push({ type: "text", text: streamed });
+          if (request.allowSilentEmpty) {
+            // Scheduled/FYI runs may finish after tools with no user-visible text.
+            streamed = "";
+          } else {
+            // Discard cumulative pre-tool narration from the terminal payload and make the
+            // missing final response visible to the user instead of silently completing.
+            streamed = TOOL_FINAL_RESPONSE_FALLBACK;
+            queue.push({ type: "text", text: streamed });
+          }
         } else if (!streamed.trim() && !host.pausePending) {
           streamed = "";
           const lastMessage = agent.state.messages.at(-1);
@@ -425,7 +446,7 @@ export class PiAgentRuntime implements AgentRuntime {
           if (fallback.trim()) {
             queue.push({ type: "text", text: fallback });
             streamed = fallback;
-          } else if (toolWorkPendingFinal) {
+          } else if (toolWorkPendingFinal && !request.allowSilentEmpty) {
             // A tool-bearing run must never finish with only a progress/narration message.
             streamed = TOOL_FINAL_RESPONSE_FALLBACK;
             queue.push({ type: "text", text: streamed });
@@ -473,6 +494,10 @@ function configuredOpenRouterModel(id: string): Model<"openai-completions"> {
   // pricing conservative, but enable reasoning: unknown OpenRouter endpoints
   // (e.g. gemini-3.7-flash before the snapshot catches up) often mandate it, and
   // thinkingLevel "off" becomes effort "none" which those endpoints reject.
+  // The output ceiling follows from that reasoning flag: a 4k placeholder would
+  // clamp the reasoning budget back to a size the thinking alone can consume.
+  // It cannot outgrow the conservative window this placeholder also assumes.
+  const contextWindow = 16_384;
   return {
     id,
     name: id,
@@ -482,12 +507,12 @@ function configuredOpenRouterModel(id: string): Model<"openai-completions"> {
     reasoning: true,
     input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 16_384,
-    maxTokens: 4_096,
+    contextWindow,
+    maxTokens: Math.min(REASONING_MODEL_MAX_TOKENS, contextWindow),
   };
 }
 
-function resolveRuntimeModel(modelConfig: AgentRunRequest["model"]): {
+export function resolveRuntimeModel(modelConfig: AgentRunRequest["model"]): {
   provider: string;
   modelId: string;
   models: Models;
@@ -497,10 +522,9 @@ function resolveRuntimeModel(modelConfig: AgentRunRequest["model"]): {
   const provider = modelConfig.provider === "scripted" ? "openrouter" : modelConfig.provider;
   const envDefaultModel = process.env.PI_DEFAULT_MODEL?.trim();
   const envDefaultProvider = process.env.PI_DEFAULT_PROVIDER?.trim() || "openrouter";
-  const modelId =
-    modelConfig.id === "scripted"
-      ? envDefaultModel || DEFAULT_OPENROUTER_MODEL_ID
-      : modelConfig.id.trim();
+  const requestedId =
+    modelConfig.id === "scripted" ? envDefaultModel || DEFAULT_OPENROUTER_MODEL_ID : modelConfig.id;
+  const modelId = usableModelId(requestedId) ?? "";
   const models = modelsForRequest({ model: modelConfig }, provider);
   let model = models.getModel(provider, modelId);
   if (!model && provider !== "openrouter" && provider !== OPENAI_COMPATIBLE_PROVIDER_ID) {
@@ -742,7 +766,11 @@ export function prepareRequestSecretArguments(raw: Record<string, unknown>) {
   const label = raw.label == null ? "" : String(raw.label);
   const purpose = raw.purpose == null ? "" : String(raw.purpose);
   if (!label.trim() || !purpose.trim()) {
-    throw new Error("request_secret requires a non-empty label and purpose");
+    throw new Error(
+      `request_secret requires a non-empty label and purpose (received: ${
+        Object.keys(raw).sort().join(", ") || "no arguments"
+      })`,
+    );
   }
   return {
     label,
@@ -832,6 +860,20 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
           instructions: raw.instructions ? String(raw.instructions) : "",
           prompt: raw.prompt ? String(raw.prompt) : "",
           computer_mode: raw.computer_mode ? String(raw.computer_mode) : "",
+        };
+      }
+      if (tool.name === "update_bot") {
+        const notifyRaw = raw.notifyOnFinish ?? raw.notify_on_finish;
+        return {
+          ...(raw.name !== undefined ? { name: String(raw.name) } : {}),
+          ...(raw.title !== undefined ? { title: String(raw.title) } : {}),
+          ...(raw.description !== undefined ? { description: String(raw.description) } : {}),
+          ...(raw.color !== undefined ? { color: String(raw.color) } : {}),
+          ...(raw.artifact_id !== undefined ? { artifact_id: String(raw.artifact_id) } : {}),
+          ...(raw.use_attached_image !== undefined
+            ? { use_attached_image: raw.use_attached_image }
+            : {}),
+          ...(notifyRaw !== undefined ? { notifyOnFinish: notifyRaw } : {}),
         };
       }
       if (tool.name === "create_space") {
@@ -1037,7 +1079,10 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
       ),
     getApiKey: async () => selectedModel.apiKey,
     transformContext: async (messages) =>
-      pruneComputerScreenshotContext(messages, requestModel.maxImagesPerPrompt),
+      pruneComputerScreenshotContext(
+        pruneStalePageStateContext(messages),
+        requestModel.maxImagesPerPrompt,
+      ),
     initialState: {
       systemPrompt: [
         `You are a Rakazo subagent named "${name}".`,
@@ -1092,11 +1137,18 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
       const text = assistantText(event.message);
       if (text && !streamed) streamed = text;
       if ("usage" in event.message && event.message.usage) {
+        const usage = billedPromptTokens(event.message.usage);
         host.queue.push({
           type: "usage",
-          ...billedPromptTokens(event.message.usage),
+          ...usage,
           provider: subagentModel.provider,
           model: subagentModel.id,
+        });
+        getLogger().debug("model usage", {
+          runId: host.request.runId,
+          provider: subagentModel.provider,
+          model: subagentModel.id,
+          ...usage,
         });
       }
     }
@@ -1167,7 +1219,8 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
 /** Build AgentTool.parameters for a connector tool, including OpenAI wire fidelity. */
 export function parametersFor(tool: ConnectorTool) {
   const schema = builtinParameters(tool) ?? safeJsonSchemaParameters(tool);
-  // Type.Union (top-level oneOf/anyOf) serializes without type/properties.
+  // Type.Union (top-level oneOf/anyOf) serializes without type/properties, and
+  // Anthropic rejects a root union, so it is flattened into one object schema.
   // Re-wrap only when needed so Type.Object schemas keep TypeBox Kind metadata.
   if (!openAiToolParametersNeedNormalization(schema)) return schema;
   return Type.Unsafe(
@@ -1237,6 +1290,17 @@ function builtinParameters(tool: ConnectorTool) {
       computer_mode: Type.Optional(Type.Union([Type.Literal("team"), Type.Literal("dedicated")])),
     });
   }
+  if (tool.name === "update_bot") {
+    return Type.Object({
+      name: Type.Optional(Type.String()),
+      title: Type.Optional(Type.String()),
+      description: Type.Optional(Type.String()),
+      color: Type.Optional(Type.String()),
+      artifact_id: Type.Optional(Type.String()),
+      use_attached_image: Type.Optional(Type.Boolean()),
+      notifyOnFinish: Type.Optional(Type.Boolean()),
+    });
+  }
   if (tool.name === "create_space") {
     return Type.Object({ name: Type.String({ minLength: 1, maxLength: 60 }) });
   }
@@ -1247,6 +1311,67 @@ function builtinParameters(tool: ConnectorTool) {
     });
   }
   return undefined;
+}
+
+/**
+ * Tools whose result is a view of the current page or screen. Each new result supersedes the
+ * earlier ones, so older results only cost context: a long browsing run otherwise re-sends every
+ * snapshot it ever took on every model call.
+ */
+const PAGE_STATE_TOOL_NAMES = new Set([
+  "browser_navigate",
+  "browser_snapshot",
+  "browser_act",
+  "computer_observe",
+  "computer_act",
+]);
+const DEFAULT_PAGE_STATE_RESULTS_TO_KEEP = 3;
+/**
+ * Only results that actually carry a page (a snapshot tree, an observation) are worth trimming
+ * or counting. Navigation confirmations, action receipts and errors are a line or two: trimming
+ * them saves nothing, and counting them would push real page state out of the kept set.
+ */
+const STALE_PAGE_STATE_MIN_CHARS = 1_000;
+const STALE_PAGE_STATE_NOTE =
+  "[Earlier page state trimmed to save context. Facts you still need from that page should already be in your notes or tracker; otherwise take a fresh snapshot.]";
+
+/**
+ * Replace all but the most recent large page-state tool results with a short note. Runs on
+ * every request from the untransformed agent history, so the same history always trims the same
+ * way and the cached prompt prefix stays stable up to the newest trimmed result.
+ */
+export function pruneStalePageStateContext(
+  messages: AgentMessage[],
+  keep = DEFAULT_PAGE_STATE_RESULTS_TO_KEEP,
+): AgentMessage[] {
+  let remaining = Math.max(0, Math.floor(keep));
+  let transformed: AgentMessage[] | undefined;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role !== "toolResult" || !PAGE_STATE_TOOL_NAMES.has(message.toolName)) continue;
+    // Failures are diagnostics, not fresh page state, even when their text is large.
+    const returnedError = (message.details as { error?: unknown } | undefined)?.error;
+    if (message.isError || (returnedError !== undefined && returnedError !== null)) continue;
+    if (textLength(message) < STALE_PAGE_STATE_MIN_CHARS) continue;
+    if (remaining > 0) {
+      remaining -= 1;
+      continue;
+    }
+    transformed ??= [...messages];
+    transformed[index] = {
+      ...message,
+      content: [{ type: "text", text: STALE_PAGE_STATE_NOTE }],
+    };
+  }
+  return transformed ?? messages;
+}
+
+function textLength(message: Extract<AgentMessage, { role: "toolResult" }>): number {
+  let total = 0;
+  for (const part of message.content) {
+    if (part.type === "text") total += part.text.length;
+  }
+  return total;
 }
 
 /** Keep recent visual state while respecting an optional model image budget. */
@@ -1340,6 +1465,11 @@ function isAgentToolExecutionResult(result: unknown): result is AgentToolExecuti
 export function jsonSchemaParameters(
   schema: Record<string, unknown>,
 ): ReturnType<typeof Type.Object> {
+  // Keep intersections intact until parametersFor flattens root combinators.
+  // Rebuilding only properties here drops allOf-only fields and their constraints.
+  if (Array.isArray(schema.allOf)) {
+    return Type.Unsafe(schema) as unknown as ReturnType<typeof Type.Object>;
+  }
   // Top-level oneOf/anyOf (e.g. request_secret's credential XOR connectionId)
   // must stay a union. Falling through to properties would drop the exclusivity
   // and re-expose both destinations as optional siblings.
@@ -1610,7 +1740,12 @@ function endToolCall(host: ToolHost) {
 }
 
 function modelForCompletion(model: Model<Api>, configuredMaxTokens?: number): Model<Api> {
-  const maxTokens = resolveCompletionMaxTokens(model.maxTokens, configuredMaxTokens);
+  const maxTokens = resolveCompletionMaxTokens(
+    model.maxTokens,
+    configuredMaxTokens,
+    undefined,
+    model.reasoning,
+  );
   if (maxTokens === model.maxTokens) return model;
   return { ...model, maxTokens };
 }
@@ -1670,7 +1805,7 @@ function createQueue(): EventQueue {
 }
 
 export function reliableStreamOptions(
-  model: Pick<Model<Api>, "api" | "provider" | "maxTokens">,
+  model: Pick<Model<Api>, "api" | "provider" | "maxTokens" | "reasoning">,
   options?: SimpleStreamOptions,
   configuredMaxTokens?: number,
 ): SimpleStreamOptions {
@@ -1678,7 +1813,12 @@ export function reliableStreamOptions(
     ...options,
     timeoutMs: options?.timeoutMs ?? MODEL_STREAM_TIMEOUT_MS,
     maxRetries: options?.maxRetries ?? MODEL_STREAM_MAX_RETRIES,
-    maxTokens: resolveCompletionMaxTokens(model.maxTokens, configuredMaxTokens, options?.maxTokens),
+    maxTokens: resolveCompletionMaxTokens(
+      model.maxTokens,
+      configuredMaxTokens,
+      options?.maxTokens,
+      model.reasoning,
+    ),
   };
 
   if (model.provider === "openai-codex" || model.api === "openai-codex-responses") {

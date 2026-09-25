@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { BotAvatarValueSchema } from "./bot-avatar.js";
 import { ThreadMessageSchema } from "./events.js";
 import { Id, MemoryScope, RunStatus, SandboxKind } from "./ids.js";
 import { McpHeadersSchema, McpRemoteEndpointSchema, McpTransportSchema } from "./mcp.js";
@@ -161,6 +162,7 @@ export const SpaceBotSchema = BotSchema.pick({
   pinned: true,
   sectionId: true,
   unread: true,
+  parentBotId: true,
   preview: true,
   status: true,
   updatedAt: true,
@@ -285,7 +287,7 @@ export const CreateBotInput = z.object({
   description: z.string().max(BOT_DESCRIPTION_MAX_LENGTH).default(""),
   instructions: z.string().max(BOT_INSTRUCTIONS_MAX_LENGTH).default(""),
   notifyOnFinish: z.boolean().default(true),
-  color: z.string().optional(),
+  color: BotAvatarValueSchema.optional(),
   computerMode: ComputerModeSchema.default("team"),
   /** Idempotency key within a space (unique with spaceId). */
   spawnKey: z.string().trim().min(1).max(120).optional(),
@@ -312,7 +314,7 @@ export const UpdateBotInput = z
     description: z.string().trim().max(BOT_DESCRIPTION_MAX_LENGTH).optional(),
     instructions: z.string().trim().max(BOT_INSTRUCTIONS_MAX_LENGTH).optional(),
     notifyOnFinish: z.boolean().optional(),
-    color: z.string().optional(),
+    color: BotAvatarValueSchema.optional(),
     pinned: z.boolean().optional(),
     memoryScope: MemoryScopeSchema.nullable().optional(),
     sectionId: Id.nullable().optional(),
@@ -711,10 +713,23 @@ export const ArtifactSchema = z.object({
   groupId: Id.nullable(),
   runId: Id.nullable(),
   name: z.string(),
+  description: z.string().nullable(),
   mimeType: z.string(),
   size: z.number().int(),
+  version: z.number().int(),
   createdAt: z.string(),
 });
+
+export type Artifact = z.infer<typeof ArtifactSchema>;
+
+export const ArtifactVersionSchema = z.object({
+  id: Id,
+  version: z.number().int(),
+  name: z.string(),
+  createdAt: z.string(),
+});
+
+export type ArtifactVersion = z.infer<typeof ArtifactVersionSchema>;
 
 export const ArtifactWithContentSchema = ArtifactSchema.extend({
   contentBase64: z.string(),
@@ -832,6 +847,7 @@ export const RunSchema = z.object({
     "webhook",
     "messaging",
     "cloud_agent",
+    "created",
   ]),
   routineId: Id.nullable(),
   modelProvider: z.string().nullable(),
@@ -902,6 +918,17 @@ export function parseModelContextWindow(value: string): number | undefined {
     : undefined;
 }
 
+/**
+ * JS null/undefined stringifies to the literals "null" / "undefined". Those
+ * are not catalog ids; treat them (and blank values) as unset.
+ */
+export function usableModelId(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
+  return trimmed;
+}
+
 export const ModelCredentialSchema = z.object({
   id: Id,
   provider: z.string(),
@@ -931,14 +958,14 @@ export const ModelConnectInputSchema = z
     modelId: z.string().optional(),
     reasoning: z.boolean().optional(),
     thinkingLevel: ThinkingLevelSchema.nullable().optional(),
-    maxTokens: z.number().int().min(1).max(MAX_MODEL_MAX_TOKENS).optional(),
+    maxTokens: z.number().int().min(1).max(MAX_MODEL_MAX_TOKENS).nullable().optional(),
     contextWindow: z.number().int().min(1).max(MAX_MODEL_CONTEXT_WINDOW).optional(),
     supportsImages: z.boolean().optional(),
     maxImagesPerPrompt: z.number().int().min(1).max(1000).nullable().optional(),
   })
   .superRefine((value, ctx) => {
     if (
-      value.maxTokens !== undefined &&
+      typeof value.maxTokens === "number" &&
       value.contextWindow !== undefined &&
       value.maxTokens > value.contextWindow
     ) {
@@ -965,7 +992,16 @@ export const ModelConnectInputSchema = z
       }
       return;
     }
-    if (!value.apiKey || value.apiKey.trim().length < 8) {
+    const apiKey = value.apiKey?.trim() ?? "";
+    if (apiKey.length > 0 && apiKey.length < 8) {
+      ctx.addIssue({
+        code: "custom",
+        message: "API key must contain at least 8 characters",
+        path: ["apiKey"],
+      });
+    }
+    // An existing connection can update its output limit without a new key.
+    if (!apiKey && value.maxTokens === undefined) {
       ctx.addIssue({
         code: "custom",
         message: "API key must contain at least 8 characters",
