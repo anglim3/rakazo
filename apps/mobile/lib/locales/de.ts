@@ -405,7 +405,6 @@ export const DE_MESSAGES: Record<string, string> = {
   Disconnect: "Trennen",
   "Disconnecting…": "Verbindung wird getrennt…",
   "Hear a sample": "Beispiel anhören",
-  "On · Free, works offline": "An · Kostenlos, funktioniert offline",
   "Hi, this is how I'll sound when I read replies out loud.":
     "Hallo, so klinge ich, wenn ich Antworten vorlese.",
   "On · Free, works offline": "Ein · Kostenlos, funktioniert offline",
