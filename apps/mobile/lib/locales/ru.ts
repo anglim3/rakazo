@@ -407,7 +407,6 @@ export const RU_MESSAGES: Record<string, string> = {
   "Reset computer?": "Сбросить компьютер?",
   "Resetting…": "Сброс…",
   Restore: "Восстановить",
-  Replies: "Ответы",
   "Stream replies": "Потоковые ответы",
   "Restore the last saved workspace. Unsaved work on the computer is lost.":
     "Восстановить последнее сохранённое рабочее пространство. Несохранённые данные на компьютере будут потеряны.",

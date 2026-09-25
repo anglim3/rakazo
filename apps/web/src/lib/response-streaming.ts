@@ -9,9 +9,7 @@ export type { ResponseStreamingPreference };
 
 export type ResolveResponseStreamingOptions = {
   stored?: string | null;
-  envDefault?: string | null;
   storage?: Pick<Storage, "getItem"> | null;
-  env?: { VITE_DEFAULT_RESPONSE_STREAMING?: string };
 };
 
 const listeners = new Set<() => void>();
@@ -34,20 +32,11 @@ function readStored(storage: Pick<Storage, "getItem"> | null | undefined): strin
   }
 }
 
-function readEnvDefault(
-  env: { VITE_DEFAULT_RESPONSE_STREAMING?: string } | undefined,
-): string | null {
-  const value = env?.VITE_DEFAULT_RESPONSE_STREAMING;
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
 function notify() {
   for (const listener of listeners) listener();
 }
 
-/**
- * Order: saved choice (`localStorage`) → `VITE_DEFAULT_RESPONSE_STREAMING` → on.
- */
+/** Saved choice wins. Nothing saved leaves streaming off. */
 export function resolveResponseStreamingPreference(
   options: ResolveResponseStreamingOptions = {},
 ): ResponseStreamingPreference {
@@ -55,21 +44,7 @@ export function resolveResponseStreamingPreference(
     options.stored !== undefined
       ? options.stored
       : readStored(options.storage ?? getLocalStorage());
-  if (stored != null) return normalizeResponseStreamingPreference(stored);
-
-  const envDefault =
-    options.envDefault !== undefined
-      ? options.envDefault
-      : readEnvDefault(
-          options.env ??
-            (typeof import.meta !== "undefined"
-              ? {
-                  VITE_DEFAULT_RESPONSE_STREAMING: (import.meta as ImportMeta).env
-                    ?.VITE_DEFAULT_RESPONSE_STREAMING,
-                }
-              : undefined),
-        );
-  return normalizeResponseStreamingPreference(envDefault);
+  return normalizeResponseStreamingPreference(stored);
 }
 
 export function persistResponseStreamingPreference(

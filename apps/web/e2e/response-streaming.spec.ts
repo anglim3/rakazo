@@ -1,14 +1,6 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { expect, type Locator, type Page, type TestInfo, test } from "@playwright/test";
+import { expect, type Page, type TestInfo, test } from "@playwright/test";
 
 const fixture = "/e2e/fixtures/response-streaming.html";
-const docsDir = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../../docs/response-streaming",
-);
-const updateDocs = process.env.UPDATE_RESPONSE_STREAMING_DOCS === "1";
 
 const LIVE_TOKENS = "Lisbon is the cap";
 const COMPLETE_TEXT = "Lisbon is the capital of Portugal.";
@@ -29,9 +21,6 @@ async function openFixture(
 
 async function writeShot(testInfo: TestInfo, name: string, sourcePath: string) {
   await testInfo.attach(name, { contentType: "image/png", path: sourcePath });
-  if (!updateDocs) return;
-  fs.mkdirSync(docsDir, { recursive: true });
-  await fs.promises.copyFile(sourcePath, path.join(docsDir, `${name}.png`));
 }
 
 async function capture(
@@ -69,42 +58,27 @@ async function capture(
   await writeShot(testInfo, name, screenshotPath);
 }
 
-async function captureLocator(testInfo: TestInfo, name: string, locator: Locator) {
-  const screenshotPath = testInfo.outputPath(`${name}.png`);
-  await locator.screenshot({ animations: "disabled", caret: "hide", path: screenshotPath });
-  await writeShot(testInfo, name, screenshotPath);
-}
-
-test("settings overlay shows Stream replies on and off", async ({ page }, testInfo) => {
+test("settings overlay keeps Stream replies inside Advanced", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await openFixture(page, { view: "settings", stream: "on" });
+  await openFixture(page, { view: "settings", stream: "off" });
   const settings = page.getByTestId("user-settings");
+  await expect(settings.getByRole("heading", { name: "Replies", exact: true })).toHaveCount(0);
+  await expect(settings.getByTestId("response-streaming-toggle")).toBeHidden();
+  await settings.getByTestId("advanced-settings").locator("summary").click();
   const streamReplies = settings.getByTestId("response-streaming-toggle");
   await expect(streamReplies).toBeVisible();
-  await expect(streamReplies).toBeChecked();
-  await expect(settings.getByRole("heading", { name: "Replies", exact: true })).toBeVisible();
+  await expect(streamReplies).not.toBeChecked();
   await expect(settings.getByText("Stream replies", { exact: true })).toBeVisible();
-  const repliesOn = settings.locator("section").filter({ hasText: "Stream replies" });
-  await repliesOn.scrollIntoViewIfNeeded();
-  await captureLocator(testInfo, "settings-stream-replies-on", repliesOn);
-  await capture(page, testInfo, "settings-stream-on");
-
-  await openFixture(page, { view: "settings", stream: "off" });
-  const settingsOff = page.getByTestId("user-settings");
-  const offToggle = settingsOff.getByTestId("response-streaming-toggle");
-  await expect(offToggle).toBeVisible();
-  await expect(offToggle).not.toBeChecked();
-  const repliesOff = settingsOff.locator("section").filter({ hasText: "Stream replies" });
-  await repliesOff.scrollIntoViewIfNeeded();
-  await captureLocator(testInfo, "settings-stream-replies-off", repliesOff);
+  await streamReplies.scrollIntoViewIfNeeded();
   await capture(page, testInfo, "settings-stream-off");
 
-  await page.setViewportSize({ width: 390, height: 844 });
   await openFixture(page, { view: "settings", stream: "on" });
-  const mobileToggle = page.getByTestId("response-streaming-toggle");
-  await expect(mobileToggle).toBeVisible();
-  await mobileToggle.scrollIntoViewIfNeeded();
-  await capture(page, testInfo, "settings-stream-on-narrow");
+  const settingsOn = page.getByTestId("user-settings");
+  await settingsOn.getByTestId("advanced-settings").locator("summary").click();
+  const onToggle = settingsOn.getByTestId("response-streaming-toggle");
+  await expect(onToggle).toBeVisible();
+  await expect(onToggle).toBeChecked();
+  await capture(page, testInfo, "settings-stream-on");
 });
 
 test("thread reducer hides live tokens when Stream replies is off", async ({ page }, testInfo) => {

@@ -172,26 +172,18 @@ export function isRunTerminalEvent(event: { type: string }): boolean {
 export const RESPONSE_STREAMING_STORAGE_KEY = "rakazo.responseStreaming";
 export type ResponseStreamingPreference = "on" | "off";
 
-/** Saved choice wins; unknown or missing values keep streaming on. */
+/** Missing and unknown values stay off; only an explicit "on" enables streaming. */
 export function normalizeResponseStreamingPreference(
   raw: string | null | undefined,
 ): ResponseStreamingPreference {
-  return raw?.trim().toLowerCase() === "off" ? "off" : "on";
+  return raw?.trim().toLowerCase() === "on" ? "on" : "off";
 }
 
-export function responseStreamingEnabled(preference: ResponseStreamingPreference = "on"): boolean {
+export function responseStreamingEnabled(preference: ResponseStreamingPreference = "off"): boolean {
   return preference === "on";
 }
 
-/** Activity lines stay visible; assistant token progress is what the opt-out hides. */
-export function shouldApplyLiveStreamingProgress(
-  payload: Record<string, unknown> | undefined,
-  streamResponses = true,
-): boolean {
-  if (streamResponses) return true;
-  return payload?.activity === true;
-}
-
+/** Hide assistant token text on synthetic progress rows. Tool activity stays. */
 export function stripLiveStreamingProgress<
   T extends { id: string; blocks: readonly MessageBlock[] },
 >(messages: readonly T[]): T[] {

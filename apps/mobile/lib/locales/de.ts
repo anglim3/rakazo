@@ -405,6 +405,7 @@ export const DE_MESSAGES: Record<string, string> = {
   Disconnect: "Trennen",
   "Disconnecting…": "Verbindung wird getrennt…",
   "Hear a sample": "Beispiel anhören",
+  "On · Free, works offline": "An · Kostenlos, funktioniert offline",
   "Hi, this is how I'll sound when I read replies out loud.":
     "Hallo, so klinge ich, wenn ich Antworten vorlese.",
   "On · Free, works offline": "Ein · Kostenlos, funktioniert offline",
@@ -450,6 +451,7 @@ export const DE_MESSAGES: Record<string, string> = {
   Robot: "Roboter",
   "Scheduled tasks": "Geplante Aufgaben",
   "Sign out": "Abmelden",
+  "Stream replies": "Antworten streamen",
   System: "System",
   "This permanently deletes your account, bots, conversations, memories, files, and saved connections. This cannot be undone.":
     "Das löscht dein Konto, deine Bots, Unterhaltungen, Erinnerungen, Dateien und gespeicherten Verbindungen endgültig. Das lässt sich nicht rückgängig machen.",

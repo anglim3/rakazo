@@ -125,26 +125,6 @@ export function GeneralSettingsPanels({
 
       <section className="rounded-xl border border-border px-4 py-4">
         <h3 className="text-[15px] font-medium text-foreground">
-          <Trans>Replies</Trans>
-        </h3>
-        <div className="mt-3 flex items-center justify-between gap-4">
-          <Label htmlFor={streamRepliesId} className="text-[14px] font-normal text-foreground/75">
-            <Trans>Stream replies</Trans>
-          </Label>
-          <Switch
-            id={streamRepliesId}
-            data-testid="response-streaming-toggle"
-            checked={streamReplies}
-            onCheckedChange={(checked) => {
-              setStreamReplies(checked);
-              setResponseStreamingPreference(checked ? "on" : "off");
-            }}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-border px-4 py-4">
-        <h3 className="text-[15px] font-medium text-foreground">
           <Trans>Language</Trans>
         </h3>
         <UiLocalePicker value={locale} onChange={chooseLocale} />
@@ -206,6 +186,21 @@ export function GeneralSettingsPanels({
           </span>
         </summary>
         <div className="border-t border-border px-4 pb-5">
+          <div className="flex items-start gap-3 pt-5">
+            <Switch
+              id={streamRepliesId}
+              data-testid="response-streaming-toggle"
+              className="mt-0.5"
+              checked={streamReplies}
+              onCheckedChange={(checked) => {
+                setStreamReplies(checked);
+                setResponseStreamingPreference(checked ? "on" : "off");
+              }}
+            />
+            <Label htmlFor={streamRepliesId} className="text-[14px] font-normal text-foreground/75">
+              <Trans>Stream replies</Trans>
+            </Label>
+          </div>
           <ApprovalRulesSettings />
         </div>
       </details>

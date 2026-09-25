@@ -15,15 +15,8 @@ function notify() {
   for (const listener of listeners) listener();
 }
 
-function envDefault(): string | null {
-  return typeof process !== "undefined" &&
-    typeof process.env.EXPO_PUBLIC_DEFAULT_RESPONSE_STREAMING === "string"
-    ? process.env.EXPO_PUBLIC_DEFAULT_RESPONSE_STREAMING
-    : null;
-}
-
 export function getCachedResponseStreamingPreference(): ResponseStreamingPreference {
-  return memoryPreference ?? normalizeResponseStreamingPreference(envDefault());
+  return memoryPreference ?? "off";
 }
 
 export function getCachedResponseStreamingEnabled(): boolean {
@@ -33,12 +26,9 @@ export function getCachedResponseStreamingEnabled(): boolean {
 export async function loadResponseStreamingPreference(): Promise<ResponseStreamingPreference> {
   try {
     const stored = await SecureStore.getItemAsync(RESPONSE_STREAMING_STORAGE_KEY);
-    memoryPreference =
-      stored != null
-        ? normalizeResponseStreamingPreference(stored)
-        : normalizeResponseStreamingPreference(envDefault());
+    memoryPreference = normalizeResponseStreamingPreference(stored);
   } catch {
-    memoryPreference = memoryPreference ?? normalizeResponseStreamingPreference(envDefault());
+    memoryPreference = memoryPreference ?? "off";
   }
   notify();
   return memoryPreference;

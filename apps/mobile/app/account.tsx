@@ -86,8 +86,9 @@ export default function Account() {
   const streamReplies = useSyncExternalStore(
     subscribeResponseStreaming,
     getCachedResponseStreamingEnabled,
-    () => true,
+    () => false,
   );
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const styles = useThemedStyles(createAccountStyles);
   const versionInfo = getAppVersionInfo();
   const updateLabel = formatUpdateLabel(versionInfo.update, t);
@@ -302,29 +303,6 @@ export default function Account() {
           </View>
         </View>
 
-        <View accessibilityLabel={t("Replies")} style={styles.avatarSection}>
-          <Text style={styles.settingsTitle}>{t("Replies")}</Text>
-          <View
-            style={{
-              minHeight: 44,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <Text style={{ color: native.label, fontSize: 15, flex: 1 }}>
-              {t("Stream replies")}
-            </Text>
-            <Switch
-              accessibilityLabel={t("Stream replies")}
-              value={streamReplies}
-              onValueChange={(checked) =>
-                void setResponseStreamingPreference(checked ? "on" : "off")
-              }
-            />
-          </View>
-        </View>
-
         <View accessibilityLabel={t("Avatar style")} style={styles.avatarSection}>
           <Text style={styles.settingsTitle}>{t("Avatars")}</Text>
           <View style={styles.avatarOptions}>
@@ -475,6 +453,31 @@ export default function Account() {
           >
             <Text style={styles.settingsTitle}>{t("Server integrations")}</Text>
           </Pressable>
+        ) : null}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("Advanced")}
+          accessibilityState={{ expanded: advancedOpen }}
+          onPress={() => setAdvancedOpen((open) => !open)}
+          style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.settingsTitle}>{t("Advanced")}</Text>
+          <Text style={styles.chevron}>{advancedOpen ? "⌃" : "›"}</Text>
+        </Pressable>
+        {advancedOpen ? (
+          <View style={styles.avatarSection}>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>{t("Stream replies")}</Text>
+              <Switch
+                accessibilityLabel={t("Stream replies")}
+                value={streamReplies}
+                onValueChange={(checked) =>
+                  void setResponseStreamingPreference(checked ? "on" : "off")
+                }
+              />
+            </View>
+          </View>
         ) : null}
 
         <Pressable
@@ -737,6 +740,17 @@ function createAccountStyles() {
       color: native.label,
       fontSize: 17,
       fontWeight: "600",
+    },
+    switchRow: {
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    switchLabel: {
+      flex: 1,
+      color: native.label,
+      fontSize: 15,
     },
     settingsTrailing: {
       flexDirection: "row",

@@ -17,31 +17,30 @@ describe("mobile response streaming preference", () => {
     vi.unstubAllEnvs();
   });
 
-  it("defaults to streaming on", async () => {
+  it("defaults to streaming off", async () => {
     const { getCachedResponseStreamingEnabled, setResponseStreamingPreference } = await import(
       "./response-streaming"
     );
-    expect(getCachedResponseStreamingEnabled()).toBe(true);
-    await setResponseStreamingPreference("off");
     expect(getCachedResponseStreamingEnabled()).toBe(false);
+    await setResponseStreamingPreference("on");
+    expect(getCachedResponseStreamingEnabled()).toBe(true);
   });
 
-  it("loads a saved off preference and notifies subscribers", async () => {
+  it("loads a saved on preference and notifies subscribers", async () => {
     const { loadResponseStreamingPreference, subscribeResponseStreaming } = await import(
       "./response-streaming"
     );
-    store.set(RESPONSE_STREAMING_STORAGE_KEY, "off");
+    store.set(RESPONSE_STREAMING_STORAGE_KEY, "on");
     const listener = vi.fn();
     subscribeResponseStreaming(listener);
 
-    await expect(loadResponseStreamingPreference()).resolves.toBe("off");
+    await expect(loadResponseStreamingPreference()).resolves.toBe("on");
     expect(listener).toHaveBeenCalledOnce();
   });
 
-  it("normalizes an empty stored value instead of treating it as absent", async () => {
-    vi.stubEnv("EXPO_PUBLIC_DEFAULT_RESPONSE_STREAMING", "off");
+  it("normalizes an empty stored value to off", async () => {
     store.set(RESPONSE_STREAMING_STORAGE_KEY, "");
     const { loadResponseStreamingPreference } = await import("./response-streaming");
-    await expect(loadResponseStreamingPreference()).resolves.toBe("on");
+    await expect(loadResponseStreamingPreference()).resolves.toBe("off");
   });
 });

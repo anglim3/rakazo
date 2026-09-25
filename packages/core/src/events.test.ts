@@ -15,7 +15,6 @@ import {
   runFailureError,
   sanitizeJsonValue,
   sanitizeUtf16ForJson,
-  shouldApplyLiveStreamingProgress,
   stripLiveStreamingProgress,
   trackToolCallStreak,
   trackToolNameStreak,
@@ -43,23 +42,17 @@ describe("isRunTerminalEvent", () => {
 });
 
 describe("response streaming preference", () => {
-  it("treats only an explicit off value as disabled", () => {
+  it("enables streaming only for an explicit on value", () => {
+    expect(normalizeResponseStreamingPreference("on")).toBe("on");
+    expect(normalizeResponseStreamingPreference(" ON ")).toBe("on");
     expect(normalizeResponseStreamingPreference("off")).toBe("off");
     expect(normalizeResponseStreamingPreference(" OFF ")).toBe("off");
-    expect(normalizeResponseStreamingPreference("on")).toBe("on");
-    expect(normalizeResponseStreamingPreference("")).toBe("on");
-    expect(normalizeResponseStreamingPreference(null)).toBe("on");
+    expect(normalizeResponseStreamingPreference("")).toBe("off");
+    expect(normalizeResponseStreamingPreference(null)).toBe("off");
+    expect(normalizeResponseStreamingPreference("maybe")).toBe("off");
+    expect(responseStreamingEnabled()).toBe(false);
     expect(responseStreamingEnabled("off")).toBe(false);
     expect(responseStreamingEnabled("on")).toBe(true);
-  });
-
-  it("keeps activity progress when streaming replies is off", () => {
-    expect(shouldApplyLiveStreamingProgress({ text: "Lis", streaming: true }, false)).toBe(false);
-    expect(shouldApplyLiveStreamingProgress({ delta: "bon" }, false)).toBe(false);
-    expect(shouldApplyLiveStreamingProgress({ text: "Using browser", activity: true }, false)).toBe(
-      true,
-    );
-    expect(shouldApplyLiveStreamingProgress({ text: "Lis", streaming: true })).toBe(true);
   });
 
   it("strips live token bubbles and leaves tool activity", () => {

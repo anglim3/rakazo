@@ -6,37 +6,11 @@ import {
 } from "./response-streaming";
 
 describe("response streaming preference", () => {
-  it("prefers the saved choice over the env default", () => {
-    expect(
-      resolveResponseStreamingPreference({
-        stored: "off",
-        envDefault: "on",
-      }),
-    ).toBe("off");
-  });
-
-  it("uses VITE_DEFAULT_RESPONSE_STREAMING when nothing is saved", () => {
-    expect(
-      resolveResponseStreamingPreference({
-        stored: null,
-        envDefault: "off",
-      }),
-    ).toBe("off");
-    expect(
-      resolveResponseStreamingPreference({
-        stored: null,
-        envDefault: null,
-      }),
-    ).toBe("on");
-  });
-
-  it("treats an empty stored value as on, not as missing", () => {
-    expect(
-      resolveResponseStreamingPreference({
-        stored: "",
-        envDefault: "off",
-      }),
-    ).toBe("on");
+  it("leaves streaming off unless a saved choice turns it on", () => {
+    expect(resolveResponseStreamingPreference({ stored: "on" })).toBe("on");
+    expect(resolveResponseStreamingPreference({ stored: "off" })).toBe("off");
+    expect(resolveResponseStreamingPreference({ stored: null })).toBe("off");
+    expect(resolveResponseStreamingPreference({ stored: "" })).toBe("off");
   });
 
   it("persists through storage helpers", () => {
@@ -47,8 +21,8 @@ describe("response streaming preference", () => {
         store.set(key, value);
       },
     };
-    persistResponseStreamingPreference("off", storage);
-    expect(store.get(RESPONSE_STREAMING_STORAGE_KEY)).toBe("off");
-    expect(resolveResponseStreamingPreference({ storage })).toBe("off");
+    persistResponseStreamingPreference("on", storage);
+    expect(store.get(RESPONSE_STREAMING_STORAGE_KEY)).toBe("on");
+    expect(resolveResponseStreamingPreference({ storage })).toBe("on");
   });
 });
