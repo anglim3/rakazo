@@ -16,7 +16,6 @@ import {
   attachmentsForThread,
   buildComposerMentionOptions,
   type ComposerMention,
-  cloudAgentHttpsUrl,
   isApprovalAskBlock,
   isRunTerminalEvent,
   isSecretAskBlock,
@@ -42,7 +41,6 @@ import {
   AppState,
   FlatList,
   Image,
-  Linking,
   Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -57,6 +55,7 @@ import {
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CloudAgentCard, SubagentCard } from "../components/AgentRunCard";
 import { AppConnectCard } from "../components/AppConnectCard";
 import { AskActions } from "../components/AskActions";
 import { BotAvatar } from "../components/bot-avatar";
@@ -2297,7 +2296,6 @@ const MessageBubble = memo(function MessageBubble({
   onPreviewMarkdown: (target: MarkdownArtifactPreviewTarget) => void;
   actionProps: MessageActionProps;
 }) {
-  const colorScheme = useResolvedAppearance();
   const tokens = mobileTokens();
   const { t } = useI18n();
   const [peerExpanded, setPeerExpanded] = useState(false);
@@ -2411,118 +2409,17 @@ const MessageBubble = memo(function MessageBubble({
       block.kind === "subagent" || block.kind === "child_bot" || block.kind === "cloud_agent",
   );
   if (special?.kind === "subagent") {
-    const running = special.status === "running";
-    const failed = special.status === "failed";
     return (
-      <Pressable
-        {...actionProps}
-        style={{
-          width: "90%",
-          borderRadius: 18,
-          borderWidth: 1,
-          borderColor: tokens.border,
-          backgroundColor: tokens.card,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            gap: 8,
-          }}
-        >
-          <Text style={{ color: tokens.foreground, fontSize: 15, fontWeight: "600" }}>
-            {special.name || t("subagent")}
-          </Text>
-          <Text
-            style={{
-              color: failed ? tokens.destructive : running ? tokens.warning : tokens.success,
-              fontSize: 13,
-            }}
-          >
-            {running
-              ? t("Running")
-              : special.status === "failed"
-                ? t("Failed")
-                : special.status === "completed"
-                  ? t("Completed")
-                  : special.status}
-          </Text>
-        </View>
-        {special.task ? (
-          <Text style={{ color: tokens.mutedForeground, marginTop: 8, fontSize: 13.5 }}>
-            {special.task}
-          </Text>
-        ) : null}
-        {special.result || special.progress ? (
-          <View style={{ marginTop: 8 }}>
-            <ChatMarkdown palette={tokens} colorScheme={colorScheme} streaming={running}>
-              {special.result || special.progress || ""}
-            </ChatMarkdown>
-          </View>
-        ) : null}
-      </Pressable>
+      <SubagentCard
+        block={special}
+        accessibilityActions={actionProps.accessibilityActions}
+        onAccessibilityAction={actionProps.onAccessibilityAction}
+        onLongPress={actionProps.onLongPress}
+      />
     );
   }
   if (special?.kind === "cloud_agent") {
-    const title = special.title || t("Cloud agent");
-    const statusLabel =
-      special.status === "running"
-        ? t("running")
-        : special.status === "finished"
-          ? t("finished")
-          : special.status === "cancelled"
-            ? t("cancelled")
-            : t("failed");
-    const running = special.status === "running";
-    const failed = special.status === "failed" || special.status === "cancelled";
-    const prHref = cloudAgentHttpsUrl(special.prUrl);
-    const href = prHref ?? cloudAgentHttpsUrl(special.url);
-    return (
-      <Pressable
-        onPress={() => {
-          if (href) Linking.openURL(href).catch(() => undefined);
-        }}
-        testID="cloud-agent-card"
-        accessibilityRole={href ? "link" : "text"}
-        accessibilityLabel={`${title}: ${statusLabel}`}
-        disabled={!href}
-        style={{
-          width: "90%",
-          borderRadius: 18,
-          borderWidth: 1,
-          borderColor: tokens.border,
-          backgroundColor: tokens.card,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-        }}
-      >
-        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-          <Text style={{ color: tokens.cardForeground, fontSize: 15, fontWeight: "600" }}>
-            {title}
-          </Text>
-          <Text
-            style={{
-              color: failed ? tokens.destructive : running ? tokens.warning : tokens.success,
-              fontSize: 13,
-            }}
-          >
-            {statusLabel}
-          </Text>
-        </View>
-        {prHref ? (
-          <Text style={{ color: tokens.mutedForeground, marginTop: 8, fontSize: 14.5 }}>
-            {t("Pull request")}
-          </Text>
-        ) : special.branch ? (
-          <Text style={{ color: tokens.mutedForeground, marginTop: 8, fontSize: 13.5 }}>
-            {special.branch}
-          </Text>
-        ) : null}
-      </Pressable>
-    );
+    return <CloudAgentCard block={special} />;
   }
   if (special?.kind === "child_bot") {
     const removed = special.status === "deleted" || special.status === "archived";

@@ -1,61 +1,68 @@
-import { Trans } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import type { MessageBlock } from "@rakazo/contracts";
-import { cloudAgentHttpsUrl } from "@rakazo/core";
-import { Badge } from "@rakazo/ui-web/components/ui/badge";
-import { Card, CardContent } from "@rakazo/ui-web/components/ui/card";
+import { cloudAgentHttpsUrl, pullRequestNumberFromUrl } from "@rakazo/core";
+import type { AgentRunAction, AgentRunFileStats, AgentRunTone } from "./AgentRunCard";
+import { AgentRunCard, oneLineSummary } from "./AgentRunCard";
+
+function cloudAgentTone(
+  status: Extract<MessageBlock, { kind: "cloud_agent" }>["status"],
+): AgentRunTone {
+  if (status === "running") return "running";
+  if (status === "finished") return "success";
+  if (status === "cancelled") return "cancelled";
+  return "failed";
+}
 
 export function CloudAgentCard({
   block,
 }: {
   block: Extract<MessageBlock, { kind: "cloud_agent" }>;
 }) {
+  const { t } = useLingui();
   const prHref = cloudAgentHttpsUrl(block.prUrl);
-  const href = prHref ?? cloudAgentHttpsUrl(block.url);
-  const content = (
-    <Card size="sm" className="w-80 max-w-full" data-testid="cloud-agent-card">
-      <CardContent className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-3">
-          <span className="font-medium" dir="auto">
-            {block.title}
-          </span>
-          <Badge
-            variant="secondary"
-            className={
-              block.status === "failed"
-                ? "text-destructive"
-                : block.status === "finished"
-                  ? "text-success"
-                  : "text-muted-foreground"
-            }
-          >
-            {block.status === "running" ? (
-              <Trans>running</Trans>
-            ) : block.status === "finished" ? (
-              <Trans>finished</Trans>
-            ) : block.status === "cancelled" ? (
-              <Trans>cancelled</Trans>
-            ) : (
-              <Trans>failed</Trans>
-            )}
-          </Badge>
-        </div>
-        {prHref ? (
-          <span className="text-muted-foreground">
-            <Trans>Pull request</Trans>
-          </span>
-        ) : block.branch ? (
-          <span className="text-muted-foreground" dir="auto">
-            {block.branch}
-          </span>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-  return href ? (
-    <a href={href} target="_blank" rel="noreferrer" className="block max-w-full no-underline">
-      {content}
-    </a>
-  ) : (
-    content
+  const agentHref = cloudAgentHttpsUrl(block.url);
+  const statusLabel =
+    block.status === "running"
+      ? t`Running`
+      : block.status === "finished"
+        ? t`Done`
+        : block.status === "cancelled"
+          ? t`Cancelled`
+          : t`Failed`;
+  const prNumber = pullRequestNumberFromUrl(prHref);
+  const prLabel = prNumber != null ? t`PR #${prNumber}` : undefined;
+  const prLine = [oneLineSummary(block.branch), prLabel].filter(Boolean).join(" ") || undefined;
+  const filesChanged = block.filesChanged;
+  const filesLabel = filesChanged != null ? t`${filesChanged} files changed` : undefined;
+  const fileStats: AgentRunFileStats | undefined =
+    filesChanged != null || block.additions != null || block.deletions != null
+      ? {
+          ...(filesChanged != null ? { filesChanged } : {}),
+          ...(block.additions != null ? { additions: block.additions } : {}),
+          ...(block.deletions != null ? { deletions: block.deletions } : {}),
+        }
+      : undefined;
+  const actions: AgentRunAction[] = [];
+  if (prHref) actions.push({ href: prHref, label: t`View PR`, kind: "primary" });
+  if (agentHref && agentHref !== prHref) {
+    actions.push({ href: agentHref, label: t`Open in Web`, kind: "secondary" });
+  }
+
+  return (
+    <AgentRunCard
+      testId="cloud-agent-card"
+      title={block.title || t`Cloud agent`}
+      tone={cloudAgentTone(block.status)}
+      status={block.status}
+      statusLabel={statusLabel}
+      prLine={prLine}
+      fileStats={fileStats}
+      filesLabel={fileStats ? filesLabel : undefined}
+      lines={[block.branch, prLabel, filesLabel]}
+      links={actions.filter((action): action is AgentRunAction & { href: string } =>
+        Boolean(action.href),
+      )}
+      actions={actions}
+    />
   );
 }

@@ -102,6 +102,10 @@ msgstr "{botName} का कंप्यूटर"
 msgid "{days}d ago"
 msgstr "{days} दिन पहले"
 
+#: src/components/CloudAgentCard.tsx:36
+msgid "{filesChanged} files changed"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:138
 msgid "{hours}h ago"
 msgstr "{hours} घंटे पहले"
@@ -1036,6 +1040,10 @@ msgstr "ईमेल से जारी रखें"
 #: src/pages/Shell.tsx:5347
 msgid "Copy"
 msgstr "कॉपी करें"
+
+#: src/components/AgentRunCard.tsx:227
+msgid "Copy link"
+msgstr "लिंक कॉपी करें"
 
 #: src/pages/ScratchpadSection.tsx:56
 msgid "Could not add"
@@ -2377,6 +2385,7 @@ msgid "Monthly"
 msgstr "मासिक"
 
 #: src/pages/Shell.tsx:5329
+#: src/components/AgentRunCard.tsx:209
 msgid "More"
 msgstr ""
 
@@ -2624,6 +2633,7 @@ msgstr ""
 #: src/pages/ScratchpadSection.tsx:159
 #: src/pages/Shell.tsx:3387
 #: src/pages/Shell.tsx:3392
+#: src/components/SubagentCard.tsx:41
 msgid "Open"
 msgstr "खोलें"
 
@@ -2635,6 +2645,10 @@ msgstr ""
 #: src/pages/Shell.tsx:3355
 msgid "Open in full window"
 msgstr "पूरी विंडो में खोलें"
+
+#: src/components/CloudAgentCard.tsx:48
+msgid "Open in Web"
+msgstr ""
 
 #: src/pages/Shell.tsx:3089
 msgid "Open navigation"
@@ -2758,6 +2772,10 @@ msgstr "प्ले हो रहा है…"
 msgid "POST to"
 msgstr ""
 
+#: src/components/CloudAgentCard.tsx:33
+msgid "PR #{prNumber}"
+msgstr ""
+
 #. placeholder {0}: props.name
 #: src/components/ArtifactFileCard.tsx:65
 msgid "Preview {0}"
@@ -2771,8 +2789,16 @@ msgstr "निजी"
 msgid "Private workspace with its own bots and groups."
 msgstr ""
 
+#: src/components/SubagentCard.tsx:28
+msgid "Progress"
+msgstr ""
+
 #: src/components/integrations/IntegrationSetup.tsx:182
 msgid "Project ID"
+msgstr ""
+
+#: src/components/SubagentCard.tsx:26
+msgid "Prompt"
 msgstr ""
 
 #: src/pages/MemorySettingsOverlay.tsx:219
@@ -3023,6 +3049,10 @@ msgstr "अंतिम सहेजे गए वर्कस्पेस क�
 
 #: src/components/ComputerUpdateProgress.tsx:53
 msgid "Restoring your workspace"
+msgstr ""
+
+#: src/components/SubagentCard.tsx:30
+msgid "Result"
 msgstr ""
 
 #: src/App.tsx:171
@@ -3733,6 +3763,10 @@ msgstr "पुष्टि करके जोड़ें"
 #: src/pages/PluginsOverlay.tsx:1090
 msgid "Verifying…"
 msgstr "पुष्टि की जा रही है…"
+
+#: src/components/CloudAgentCard.tsx:46
+msgid "View PR"
+msgstr ""
 
 #: src/pages/SettingsOverlay.tsx:86
 #: src/pages/Shell.tsx:5138

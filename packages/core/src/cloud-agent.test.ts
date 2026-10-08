@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { cloudAgentBlockFromPayload, cloudAgentHttpsUrl } from "./cloud-agent.js";
+import {
+  cloudAgentBlockFromPayload,
+  cloudAgentHttpsUrl,
+  optionalCloudAgentCount,
+  pullRequestNumberFromUrl,
+} from "./cloud-agent.js";
 import { projectMessages } from "./events.js";
 
 describe("shared cloud agent projection", () => {
@@ -52,5 +57,36 @@ describe("shared cloud agent projection", () => {
       "invalid",
     ])
       expect(cloudAgentHttpsUrl(url)).toBeUndefined();
+  });
+
+  it("copies file stats only when they are real non-negative integers", () => {
+    expect(
+      cloudAgentBlockFromPayload({
+        filesChanged: 6,
+        additions: 487,
+        deletions: 6,
+        url: "https://example.test/agent",
+      }),
+    ).toMatchObject({ filesChanged: 6, additions: 487, deletions: 6 });
+    expect(
+      cloudAgentBlockFromPayload({
+        filesChanged: -1,
+        additions: 1.5,
+        deletions: "6",
+        url: "https://example.test/agent",
+      }),
+    ).not.toHaveProperty("filesChanged");
+    expect(optionalCloudAgentCount(0)).toBe(0);
+    expect(optionalCloudAgentCount(-4)).toBeUndefined();
+  });
+
+  it("reads a pull request number from a safe https URL", () => {
+    expect(pullRequestNumberFromUrl("https://github.com/example/demo/pull/24")).toBe(24);
+    expect(pullRequestNumberFromUrl("https://github.com/example/demo/pull/24/files")).toBe(24);
+    expect(pullRequestNumberFromUrl("https://gitlab.example/group/proj/-/merge_requests/8")).toBe(
+      8,
+    );
+    expect(pullRequestNumberFromUrl("javascript:alert(1)")).toBeUndefined();
+    expect(pullRequestNumberFromUrl("https://github.com/example/demo")).toBeUndefined();
   });
 });
